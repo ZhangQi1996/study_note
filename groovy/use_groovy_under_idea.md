@@ -1,0 +1,1 @@
+在idea下点击导航栏下的tools下的groovy console
