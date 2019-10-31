@@ -23,6 +23,17 @@
             1. sed 's/old/new/' test.txt: 匹配每一行的第一个old替换为new
             2. sed 's/old/new/gi' test.txt: 匹配所有old替换为new，g 代表一行多个，i 代表匹配忽略大小写
             3. sed '3,9s/old/new/gi' test.txt: 匹配第 3~9 行所有old替换为new
+            ```
+            # e.g.1
+                \w\+表示一段连续的字符串
+                \s\+ 一个或者多个空格
+                \s* 0个或者多个空格
+                \(..\) 匹配子串，保存匹配的字符，如s/\(love\)able/\1rs，loveable被替换成lovers。
+                # 其中\1表示前面匹配的第一个子字符串
+            # e.g.2
+                a=`echo 'helloworld20140501.txt'|sed 's/.*\([0-9]\{8\}\).*/\1/'`
+                这个命令作用也是一样，变量a被赋值为20140501
+            ```
         * d: 删除
             1. sed '2d' test.txt: 删除第 2 行
             2. sed '1,3d' test.txt: 删除第1~3行
