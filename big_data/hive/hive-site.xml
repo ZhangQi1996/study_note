@@ -1,36 +1,45 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
 <configuration>
-	    <property>
-                <name>datanucleus.schema.autoCreateAll</name>
-                <value>true</value>
-        </property>
-		<property>
-				<name>hive.metastore.warehouse.dir</name>
-				<value>/home/david/hive/warehouse</value>
-		</property>
-	    <property>
-                <name>javax.jdo.option.ConnectionURL</name>
-                <value>jdbc:mysql://slave1:3306/hive?createDatabaseIfNotExist=true&amp;useSSL=false</value>
-        </property>
+    <property>
+        <name>datanucleus.schema.autoCreateAll</name>
+        <value>true</value>
+        <!--是否创建自动相关的数据表-->
+    </property>
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/home/david/hive/warehouse</value>
+        <!--将数据存放的仓库位置，可以使本地系统文件，或者是hdfs-->
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://slave1:3306/hive?createDatabaseIfNotExist=true&amp;useSSL=false</value>
+        <!--1. 指定存放hive的metastore后台数据存储（每个表，表的位置等等）-->
+        <!--2. 即通过第三方的数据库来存放仓库的相关的结构以及位置信息，相当于hdfs的namenode-->
+        <!--3. 支持mysql, oracle, SQL Server-->
+        <!--4. 对于mysql（最常用）-->
+        <!--5. createDatabaseIfNotExist=true 是否自动创建数据库hive-->
+        <!--6. useSSL=false 是否使用ssl连接-->
+    </property>
 
-        <property>
-                <name>javax.jdo.option.ConnectionDriverName</name>
-                <value>com.mysql.jdbc.Driver</value>
-        </property>
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.jdbc.Driver</value>
+        <!--jdbc-->
+    </property>
 
-        <property>
-                <name>javax.jdo.option.ConnectionUserName</name>
-                <value>root</value>
-        </property>
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>root</value>
+    </property>
 
-        <property>
-                <name>javax.jdo.option.ConnectionPassword</name>
-                <value>zq15067522063</value>
-        </property>
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>zq15067522063</value>
+    </property>
 
-        <property>
-                <name>hive.metastore.schema.verification</name>
-                <value>false</value>
-        </property>
+    <property>
+        <name>hive.metastore.schema.verification</name>
+        <value>false</value>
+    </property>
 </configuration>
