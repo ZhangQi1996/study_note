@@ -44,4 +44,30 @@ Custom classloader --> 通过java.lang.ClassLoader的子类自定义加载class
 * **对于数组类（e.g. String[]）的Class对象并不是由classloader来创建的**
     * 其的Class对象是由jvm在runtime动态创建的
     * 标识为[Lxxxx.xxx.xxx.xx
-    * 
+    * 对于数组，得到其Class对象，在调用其getClassLoader()得到的类加载器与其数组元素的类加载器是一致的
+    * 对于数组，若其元素是原子类型，则其没有类加载器。原子类型其实也没有类加载器
+* ClassLoader的每一个实例都有一个与之关联的父类加载器
+* ClassLoader类是支持并发加载类的，但其子类要实现并发加载类的话就需要进行注册
+    * 调用ClassLoader.registerAsParallelCapable()
+    * 在非严格类加载层次结构上（非jvm内建层次，常见也就是自定义类加载方式），类加载需要有并发加载类的能力
+        由于加载锁是在类加载期间是加锁的，所以要是没有并发能力，则会导致死锁问题。
+* 通常，类的加载是通过在本地文件系统中以一种平台相关的方式进行类加载，但是还有其他方式
+    1. 网络
+    2. 应用自建的类 （动态代理）
+    * defineClass方法通过将字节串转换成一个class Class的实例，然后在通过Class.newInstance得到这个类的实例。
+    ```
+    class NetworkClassLoader extends ClassLoader {
+        String host;
+        int port;
+        
+        public Class findClass(String name) {
+           byte[] b = loadClassData(name);
+           return defineClass(name, b, 0, b.length);
+        }
+        
+        private byte[] loadClassData(String name) {
+           // load the class data from the connection
+            . . .
+        }
+    }
+    ```         
