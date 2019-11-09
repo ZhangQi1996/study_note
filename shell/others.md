@@ -70,7 +70,9 @@
         ((i++))
     done
     echo "The sum is: $sum"
-  ```
+    
+    while true; do echo 1; done
+    ```
 * util
     ```
     unti 循环和 while 循环恰好相反，当判断条件不成立时才进行循环，一旦判断条件成立，就终止循环。

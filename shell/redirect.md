@@ -15,4 +15,5 @@
     * command >>file1  2>>file2	以追加的方式，把正确的输出结果输出到 file1 文件中，把错误信息输出到 file2 文件中。
     * command >file 2>file	【不推荐】这两种写法会导致 file 被打开两次，引起资源竞争，所以 stdout 和 stderr 会互相覆盖，我们将在《结合Linux文件描述符谈重定向，彻底理解重定向的本质》一节中深入剖析。
     * command >>file 2>>file
+* **只用重定向最好使得左右两边不用空格隔开  e.g. echo 123 2>1.txt**
 ------
