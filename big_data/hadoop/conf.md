@@ -19,6 +19,16 @@
 #### core-site.xml (常见配置)
 ```
 <configuration>
+    <property> <!-- 必填 -->
+        <name>hadoop.proxyuser.root.hosts</name>
+        <value>*</value>
+    </property>
+    <property> <!-- 想关见security_auth.md -->
+        <name>hadoop.proxyuser.root.groups</name>
+        <value>supergroup</value>
+    </property>
+
+
     <property>
         <name>fs.defaultFS</name>
         <value>hdfs://master:9000</value> <!--默认值: 9000-->
@@ -34,6 +44,16 @@
         <name>hadoop.tmp.dir</name>
         <value>/big_data/tmp</value>    <!--默认值: /tmp/hadoop-${user.name}-->
         <description>临时文件存放的地方</description>
+    </property>
+
+    <!--解决 -->
+    <property>
+        <name>hadoop.proxyuser.root.hosts</name>
+        <value>*</value>
+    </property>
+    <property>
+        <name>hadoop.proxyuser.root.groups</name>
+        <value>*</value>
     </property>
 </configuration>
 ```
