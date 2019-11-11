@@ -5,3 +5,4 @@
 
 ## JVM的常见参数
 * -XX:+TraceClassLoading 追踪类的加载信息
+* -XX:+TraceClassUnloading 追踪类的卸载信息
