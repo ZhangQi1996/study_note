@@ -138,6 +138,17 @@
         <!--2. 运用场景：MR数量较少-->
         <!--3. uber模式仅仅支持MR2-->
     </property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>master:10020</value> <!--默认值: 10020 -->
+        <!--jobhistory服务器的rpc端口-->
+    </property>
+    <property>
+        <name>mapreduce.jobtracker.address</name>
+        <value>master:8021</value> <!--默认值: local -->
+        <!--jobtracker的rpc端口-->
+    </property>
+
 </configuration>
 ```
 #### yarn-site.xml
@@ -169,8 +180,18 @@
     </property>
     <property>
         <name>yarn.nodemanager.vmem-pmem-ratio</name>
-        <value>2.1</value>  <!--默认值: 2.1-->
-        <!--设置在nodemanager中的虚拟内存与实际物理内存的比率-->
+        <value>10</value>  <!--默认值: 2.1-->
+        <!--设置在nodemanager中的虚拟内存与容器实际物理内存的比率-->
+    </property>
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>master</value> <!--默认值: 0.0.0.0 -->
+        <!--配置用来 RM与NM之间进行通信-->
+    </property>
+    <property>
+        <name>yarn.nodemanager.hostname</name>
+        <value>local</value> <!--默认值: 0.0.0.0 -->
+        <!--配置用来 RM与NM之间进行通信-->
     </property>
 </configuration>
 ```
