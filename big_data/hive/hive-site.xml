@@ -61,6 +61,17 @@
     </property>
 
 
+    <property>
+        <!-- hiveserver2的端口 -->
+        <name>hive.server2.thrift.port</name>
+        <value>10000</value>
+    </property>
+    <property>
+        <!-- hiveserver2的绑定的主机 -->
+        <name>hive.server2.thrift.bind.host</name>
+        <value>local</value> <!-- localhost-->
+    </property>
+
 <!--    <property>-->
 <!--        <name>hive.metastore.schema.verification</name>-->
 <!--        <value>false</value>-->
