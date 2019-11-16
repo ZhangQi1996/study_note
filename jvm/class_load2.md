@@ -84,4 +84,13 @@ Custom classloader --> 通过java.lang.ClassLoader的子类自定义加载class
         类加载器来加载他们即可，不同类加载所加载的类是互相不兼容的，这就相当于在jvm中，创建了一个又一个相互隔离的
         的java类空间，这类技术在很多框架中都得到了实际应用。
 * **注意EXT加载器是加载jar包中的class文件，若没有打成jar包放到ext目录中，则回乡下尝试由app加载器来加载**        
-
+* ext/app类加载的类都是由启动类（bootstrap）加载器进行加载的，然而**自定义的类加载器是由app类加载器进行加载的**。
+* 启动类加载器是内建于jvm中的，是由c++编写的，启动器加载器不是java类，而其他的加载器是是java类
+* 修改系统类加载器，让它返回的不是app/sys classloader，通过设置java系统属性java.system.class.loader的值，
+    比如设置为com.zq.jvm.MyClassLoader，对于这个类有一个要求，就是
+   这个类的必须拥有一个public 的构造器方法，而其参数就是一个ClassLoader parent，被用来做代理双亲。例如：
+   public MyClassLoader(ClassLoader parent) {super(parent);}
+   通过这样，系统类加载器就是自己设置的这个加载器类。加载器的名字就是它的全限定名。
+   首先，这个加载器类是由默认的系统加载器类（app/sys ClassLoader）进行加载的，同时这个类加载器的父加载器是默认的类加载器。
+   所以自定义类的定义类加载器由于双亲委托机制，也是默认的类加载器，而通过ClassLoader.getSystemClassLoader方法获得
+   的返回值就是MyClassLoader的实例。
