@@ -45,7 +45,7 @@
     </property>
     <property>
         <name>hive.metastore.server.max.threads</name>
-        <value>5</value>
+        <value>3</value><!--        设置小一点防止mysql过载-->
         <description>Maximum number of worker threads in the Thrift server's pool.</description>
     </property>
     <property>
