@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value> <!--默认值: local-->
+        <!--表示启动MR程序的框架类型：有local，classic，yarn-->
+        <!--1. local模式：采用本地单机运行MR程序，client，jobtracker，tasktracker均在本主机上，而且单进程，不管如何设置mapper与reducer数量都会重新设置为1-->
+        <!--2. classic模式：即采用分布式MR1模式，采用jobtracker+tasktracker-->
+        <!--3. yarn模式：即采用基于yarn资源管理的MR2模式（即表示MR2与yarn密切相关），采用resource manager+app master+node manager-->
+    </property>
+    <property>
+        <name>mapreduce.map.java.opts</name> <!--默认值: -Xmx200m-->
+        <value>-Xmx200m</value>
+        <!--1. 用于配置在MR1中每个运行MR程序的java子进程或者MR2中容器中java进程所需的内存（分配java的堆栈大小）-->
+        <!--2. 他的数值推荐为mapreduce.map/reduce.memory.mb的0.75倍-->
+    </property>
+    <property>
+        <name>mapreduce.reduce.java.opts</name> <!--默认值: -Xmx200m-->
+        <value>-Xmx200m</value>
+        <!--1. 用于配置在MR1中每个运行MR程序的java子进程或者MR2中容器中java进程所需的内存（分配java的堆栈大小）-->
+        <!--2. 他的数值推荐为mapreduce.map/reduce.memory.mb的0.75倍-->
+    </property>
+    <property>
+        <name>mapreduce.map.memory.mb</name>
+        <value>256</value>  <!--默认值: 1024-->
+        <!--1. 在MR1中是指的是对于在tasktracker中，分配给这个MR的总内存-->
+        <!--2.1. 在YARN/MR2中，由于MR程序是运行在容器中的，而这个容器是于AM在RM申请再来分配的给MR容器，即MR容器的内存-->
+        <!--2.2. 注意，在yarn模式中，设置该数值是收到yarn.scheduler.minimum-allocation-mb（rm的最小分配数量）的整数倍的限制-->
+        <!--     比如，该数值为400，然而最小分配数量为256，则真实的分配数值为512（即256的2倍），-->
+        <!--        但是这个数值要小于yarn.scheduler.maximum-allocation-mb-->
+        <!--3. 由于除了java的堆栈外，还仍需一些空间存放其他的如java代码，一些其他资源，故这个值必须大于mapreduce.map/reduce.java.opts-->
+    </property>
+    <property>
+        <name>mapreduce.reduce.memory.mb</name>
+        <value>256</value>  <!--默认值: 1024-->
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.command-opts</name> <!--默认值:-Xmx1024m -->
+        <value>-Xmx200m</value>
+        <description>java heap size for AM processes</description>
+        <!--1. 分配给App Master的java进程所需的堆栈大小-->
+        <!--2. 其数值应该小于分配给AM容器的内存大小 常见比例为0.75-->
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.resource.mb</name>
+        <value>256</value>  <!--默认值: 1536 -->
+        <description>mb allocated to AM Container</description>
+        <!--1. 分配给App Master容器的内存大小-->
+        <!--2. 其数值应该大于分配给AM的java进程heap大小 常见比例为1: 0.75-->
+    </property>
+    <property>
+        <name>mapreduce.job.ubertask.enable</name>
+        <value>false</value> <!--默认值: false -->
+        <!--1. 是否采用uber模式，所谓uber模式就是指使得多个MR程序运行在同一个jvm中-->
+        <!--2. 运用场景：MR数量较少-->
+        <!--3. uber模式仅仅支持MR2-->
+    </property>
+    <property>
+        <name>mapreduce.jobhistory.address</name>
+        <value>master:10020</value> <!--默认值: 10020 -->
+        <!--jobhistory服务器的rpc端口-->
+    </property>
+    <property>
+        <name>mapreduce.jobtracker.address</name>
+        <value>master:8021</value> <!--默认值: local -->
+        <!--jobtracker的rpc端口-->
+    </property>
+
+</configuration>

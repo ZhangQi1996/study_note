@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <value>master:50070</value> <!--默认值: 50070-->
+    </property>
+    <property>
+        <name>dfs.namenode.secondary.http-address</name>
+        <value>master:50090</value> <!--默认值: 50090-->
+    </property>
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value> <!--默认值: 1-->
+        <description>表示数据块备份的数目，不能超过DataNode的数量</description>
+    </property>
+    <property>
+        <name>dfs.blocksize</name>
+        <value>64m</value>  <!--默认值: 128m-->
+        <description>块的大小</description>
+    </property>
+</configuration>

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+        <!--shuffle的必添加选项-->
+    </property>
+
+    <property>
+        <name>yarn.scheduler.minimum-allocation-mb</name>
+        <value>256</value>  <!--默认值: 1024-->
+        <!--AM申请的最小内存单元，每次RM分配的内存斗志该最小分配的倍数值-->
+    </property>
+
+    <property>
+        <name>yarn.scheduler.maximum-allocation-mb</name>
+        <value>1024</value> <!--默认值: 8196-->
+        <!--申请容器的最大内存单元，每次RM分配的内存都应该小于等于该数值-->
+    </property>
+
+    <property>
+        <name>yarn.nodemanager.resource.memory-mb</name>
+        <value>768</value> <!--默认值: 8196-->
+        <!--1. nodemanager能分配所有容器的总的内存值：比如包含AM容器，MR容器-->
+        <!--2. 该值必须>=max{AM容器, Map容器， Reduce容器}-->
+    </property>
+    <property>
+        <name>yarn.nodemanager.vmem-pmem-ratio</name>
+        <value>10</value>  <!--默认值: 2.1-->
+        <!--设置在nodemanager中的虚拟内存与容器实际物理内存的比率-->
+    </property>
+    <property>
+        <name>yarn.resourcemanager.hostname</name>
+        <value>master</value> <!--默认值: 0.0.0.0 -->
+        <!--配置用来 RM与NM之间进行通信-->
+    </property>
+    <property>
+        <name>yarn.nodemanager.hostname</name>
+        <value>local</value> <!--默认值: 0.0.0.0 -->
+<!--        当是分布式时，这个local是指内网ip地址-->
+        <!--配置用来 RM与NM之间进行通信-->
+    </property>
+</configuration>

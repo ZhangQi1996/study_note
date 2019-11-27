@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property> <!-- 必填 -->
+        <name>hadoop.proxyuser.root.hosts</name>
+        <value>*</value>
+    </property>
+    <property> <!-- 想关见security_auth.md -->
+        <name>hadoop.proxyuser.root.groups</name>
+        <value>supergroup</value>
+    </property>
+
+
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://master:9000</value> <!--默认值: 9000-->
+        <description>表示HDFS的基本路径</description>
+    </property>
+
+    <property>
+        <name>io.file.buffer.size</name>
+        <value>131072</value><!--默认值: 4096 （4k）-->
+        <description>128k的缓冲区辅助</description>
+    </property>
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>/big_data/tmp</value>    <!--默认值: /tmp/hadoop-${user.name}-->
+        <description>临时文件存放的地方</description>
+    </property>
+
+    <!--解决 -->
+<!--    见s_a.md-->
+    <property>
+        <name>hadoop.proxyuser.root.hosts</name>
+        <value>*</value>
+    </property>
+    <property>
+        <name>hadoop.proxyuser.root.groups</name>
+        <value>*</value>
+    </property>
+</configuration>
