@@ -17,3 +17,24 @@
     * command >>file 2>>file
 * **只用重定向最好使得左右两边不用空格隔开  e.g. echo 123 2>1.txt**
 ------
+* 输入重定向
+    * cmd < file 将file文件的内容作为cmd的输入
+* Here Document
+    * 将两个限定符中间的文档作为输入导给cmd
+    * 格式如下
+    ```
+    cmd << delimiter
+        DOCUMENT
+    delimiter
+  
+    // e.g.
+    $ wc -l << EOF
+        欢迎来到
+        菜鸟教程
+        www.runoob.com
+    EOF
+    ```
+    * 注意：
+        1. 结尾的delimiter 一定要顶格写，前面不能有任何字符，后面也不能有任何字符，包括空格和 tab 缩进。
+        2. 开始的delimiter前后的空格会被忽略掉。
+    

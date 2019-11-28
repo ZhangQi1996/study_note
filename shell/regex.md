@@ -4,7 +4,11 @@
 \s\+ 一个或者多个空格
 \s* 0个或者多个空格
 ```
-* 参见https://www.cnblogs.com/EasonJim/p/8282511.html
+* 参见**https://www.jb51.net/tools/shell_regex.html**
 * 注意：在匹配\t这些符号时候需要使用
     * [[ $str =~ $'\t' ]]
     * [[ $str =~ [$'\t'$'\n'] ]]
+* e.g.
+    * 匹配任意空白字符
+        * [[ $str =~ ^[[:blank:]]*$ ]]
+* 注对所有POSIX字符类都用[[:xxx:]]来表示单个字符

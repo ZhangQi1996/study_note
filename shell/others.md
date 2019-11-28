@@ -41,6 +41,12 @@
     
     注意，if 和 elif 后边都得跟着 then。
     ```
+    * **ATTENTION**
+    ```
+    condition:
+    可以if 命令/关键字/函数, 这个执行就是true，失败就是false
+    可以用$?捕获return的值或者exit的值
+    ```
     
 * case-in
     ```
@@ -257,3 +263,4 @@
     # call
     func [arg1 arg2 ...]
     ```
+    * 若函数无参数则 function func_name {...}
