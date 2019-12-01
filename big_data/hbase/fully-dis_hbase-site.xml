@@ -10,6 +10,14 @@
         <value>true</value>
     </property>
     <property>
+        <name>hbase.master.info.bindAddress</name>
+        <value>master</value>
+    </property>
+    <property>
+        <name>hbase.regionserver.info.bindAddress</name>
+        <value>local</value>
+    </property>
+    <property>
         <name>hbase.zookeeper.property.dataDir</name>
         <value>/home/hbase/zookeeper</value>
     </property>
@@ -19,8 +27,15 @@
 <!--        采用本地文件系统模式就可以用false，否则尽量用true-->
     </property>
     <property>
+        <name>hbase.zookeeper.property.clientPort</name>
+        <value>2222</value>
+        <description>Property from ZooKeeper's config zoo.cfg.
+            The port at which the clients will connect.
+        </description>
+    </property>
+    <property>
         <name>hbase.zookeeper.quorum</name>
-        <value>master, slave1, slave2</value>
+        <value>master</value> <!--采用奇数个，且每个之间仅用逗号不用逗号空格-->
     </property>
     <property>
         <name>hbase.zookeeper.property.dataDir</name>

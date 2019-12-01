@@ -20,7 +20,7 @@ node-c.example.com      no      yes         yes
     2. 配置另一个主机为备份Master
         1. 若conf文件夹下没有backup-masters文件则在其下新建这个文件
         2. 在conf/backup-masters文件中添加xxx一行，意思将xxx主机作为备份Master的地方
-* 启动
+* 集体启动
     1. 保证没有节点启动了HBase
     2. 通过start-hbase.sh来启动所有相关进程
         * master节点上的HMaster, HQuorumPeer
@@ -28,4 +28,9 @@ node-c.example.com      no      yes         yes
         * 注1: HQuorumPeer进程在哪个节点上启动由master节点上的hbase-site.xml文件中的属性决定
         * 注2: 对于ZooKeeper的QuorumPeer进程是在HBase内启动还是外部启动
         * 内部启动时，jps显示HQuorumPeer，外部启动显示QuorumPeer
+* 各主机自己启动
+    * bin/hbase zookeeper start # hbase-managed zk
+    * bin/hbase master start
+    * bin/hbase regionserver start    
+* 注意rs与master通信是由zk来确定的
         
