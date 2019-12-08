@@ -13,4 +13,6 @@ E.g.
 
 // 接下来就是要删除del.txt中列出的文件
 cat del.txt | xargs rm -f
+// 
+pidof nginx | xargs kill -9
 ```

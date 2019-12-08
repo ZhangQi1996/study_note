@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# 用于删除slave上未被jps标识的datanode与nodemanager
+
+if [[ -z $HADOOP_HOME ]]; then
+	echo '请配置环境变量HADOOP_HOME' >&2
+	exit 1
+fi
+
+function usage() {
+	cat <<EOF
+保证本节点到其他节点的ssh相关配置
+Usage: bash kill_nodes.sh
+Attetion: the username of any slave host is root in default.
+EOF
+}
+
+UUID=3517c3e7-f865-4a2e-b0dc-c9f5a873ed60
+
+function yield_script {
+  cat > $UUID.sh.tmp <<EOF
+#!/usr/bin/env bash
+if (( \$# == 0 || \$# > 2 )); then
+  echo '输入的参数不合法' >&2
+  usage
+  exit 1
+fi
+
+kill_param='-QUIT'
+reg=
+
+for arg in \$@; do
+  if [[ \$arg == '-y' ]]; then
+    kill_param='-9'
+  else
+    reg=\$arg
+  fi
+done
+
+if [[ -z \$reg ]]; then
+  echo '请输入REG' >&2
+  usage
+  exit 1
+fi
+
+# 父进程号
+ppids=()
+
+function pid_is_in_ppids() { # 返回0就是存在返回1就是不存在
+  for i in \${ppids[@]}; do
+    echo \$i
+    if [[ \$1 == \$i ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+for pid in \$(ps -ef | grep -E \$reg | grep -Ev grep\|\$\$ | awk '{print \$2}'); do
+  # 若是pid不在ppids中
+  if ! pid_is_in_ppids \$pid; then
+    if ! kill \$kill_param \$pid; then
+      echo 'KILL ERROR'
+      exit 1
+    fi
+  fi
+  ppids[\${#ppids[@]}]=\$pid
+done
+EOF
+}
+
+usage
+
+if [[ -z $HADOOP_HOME/etc/hadoop/slaves ]]; then
+	echo ERROR:$HADOOP_HOME/etc/hadoop/slaves文件不存在 >&2
+	exit 1
+fi
+
+yield_script
+
+for slave in $(cat $HADOOP_HOME/etc/hadoop/slaves | xargs); do
+  if scp $UUID.sh.tmp root@$slave:~/ && ssh -n root@$slave "bash ~/$UUID.sh.tmp -y DataNode\|NodeManager" && \
+    ssh -n root@$slave "rm -f ~/$UUID.sh.tmp"; then
+      continue
+  else
+    echo ERROR
+    rm -f $UUID.sh.tmp
+    exit 1
+  fi
+done
+
+rm -f $UUID.sh.tmp
+exit 0
