@@ -117,6 +117,8 @@
     
   ```
 * foreach
+    * for in in 1 2 3
+        * 千万不要写成for in in "1 2 3" or for i in '1 2 3'
     ```
     for variable in value_list
     do

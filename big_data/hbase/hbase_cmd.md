@@ -1,0 +1,8 @@
+* hbase shell
+    * 进入shell
+    * flush
+        * 将mem store的数据写入storefile中
+* hbase hfile
+    * -f 查看storefile文件
+    * -m 打印meta 配套-f使用
+    * -p 打印k-v  配套-f使用

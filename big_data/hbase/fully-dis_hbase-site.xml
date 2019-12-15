@@ -18,10 +18,6 @@
         <value>local</value>
     </property>
     <property>
-        <name>hbase.zookeeper.property.dataDir</name>
-        <value>/home/hbase/zookeeper</value>
-    </property>
-    <property>
         <name>hbase.unsafe.stream.capability.enforce</name>
         <value>true</value>
 <!--        采用本地文件系统模式就可以用false，否则尽量用true-->
@@ -39,6 +35,6 @@
     </property>
     <property>
         <name>hbase.zookeeper.property.dataDir</name>
-        <value>/usr/local/zookeeper</value>
+        <value>/home/hbase/zookeeper</value>
     </property>
 </configuration>

@@ -1,3 +1,4 @@
+
 #### 先初始化schema
 * 就是初始化metastore db中的存储结构schema
     * 比如
@@ -20,3 +21,34 @@
     * 方式2: 先键入beeline，登录到无连接状态，再通过键入!connect jdbc:hive2://host:port登录   
         
 * 在通过beeline进行操作，对涉及资源都是在hiveserver2所在的机器上或者hdfs上
+* 开启hive的执行操作的mr任务的MAP输出阶段压缩
+    * 开启map输出阶段压缩可以减少job中map和reduce task间数据传输量
+    1. 开启hive中间传输数据的codec功能
+        * SET hive.exec.compress.intermediate=true
+    2. 开启MR中的map输出压缩功能
+        * SET mapreduce.map.output.compress=true
+    3. 设置MR中map的压缩方式
+        * SET mapreduce.map.output.compress.codec=org.apache.hadoop.io.compress.SnappyCodec; # SnappyCodec进行codec时不占用内存
+    4. 进行相关操作
+        * SELECT COUNT(*) FROM tn
+* 开启hive的执行操作的mr任务的REDUCE输出阶段压缩
+    1. 开启hive最终输出数据的压缩功能
+        * SET hive.exec.compress.output=true
+    2. 开启MR中的reduce输出压缩功能
+        * SET mapreduce.output.fileoutput.compress=true
+    3. 设置MR中map的压缩方式
+        * SET mapreduce.output.fileoutput.compress.codec=org.apache.hadoop.io.compress.SnappyCodec; # SnappyCodec进行codec时不占用内存
+    4. 设置数据输出的压缩类型NONE/BLOCK/RECORD
+        * SET mapreduce.output.fileoutputformat.compress.type=BLOCK
+    5. 操作
+        * INSERT OVERWRITE LOCAL DIRECTORY '/root/data' SELECT * FROM tn;
+* hive中常见的压缩
+    * 行存储
+        1. TEXTFILE
+            * 可结合gzip, bzip2进行codec，使用的时候系统自动执行codec
+            * 不会对数据进行切分，从而无法进行并行操作
+        2. SEQUNCEFILE
+    * 列存储
+        1. ORC （optimized row columnar）
+        2. PARQUET
+            * 按二进制存储  

@@ -59,16 +59,35 @@ clients     /                       \ nginxs - servers
         * location 代理
             ```
             location /hello {
-                proxy_pass https://www.baidu.com/
+                proxy_pass https://www.baidu.com/;
             }
           
             location ~* ^/s {
-                proxy_pass https://www.baidu.com
+                proxy_pass https://www.baidu.com;
             }
             ```
             * **对于proxy_pass中的代理最后带了path，比如/，直接连接proxy_pass/path，不带的时候则连接proxy_pass/s.\*的内容**
-            
-                 
+            * **在location代理层次可以做一个基于反向代理的负载均衡**
+            ```
+            http {
+            ...
+                upstream srv_pool { # srv_pool是自己定义的服务池的名字
+                    server IP1[:port] [weight=x];
+                    server IP2[:port] [weight=y];
+                    ...
+                }
+                server {
+                    ...
+                    location ~* ^/s {
+                        proxy_pass http://srv_pool/; # 主要最后带不带/
+                        # 将符合这个location 的请求负载到服务池中的服务器中
+                    }
+                }
+            }
+            ```
+    * nginx的session一致性的问题
+        * 集群一定要保证集群时间一致性
+                     
                 
     
 

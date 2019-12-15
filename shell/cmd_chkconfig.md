@@ -13,12 +13,12 @@
     1. 先编写service脚本，包含start,stop,reload,restart等等
     2. 脚本中必须有一行注释为
         ```
-        # chkconfig - 85 15
+        # chkconfig: - 85 15
         ```    
         * 第一个参数指定服务的配置
             1. - 为关闭
-            2. 85 启动的优先级（越大优先级越高）
-            3. 15 关闭的优先级
+            2. 85 启动的优先级（值越小越优先）
+            3. 15 关闭的优先级（值越小越优先）
     2.5 将脚本放到/etc/init.d/目录下
     3. 将脚本chmod为可执行 chmod u+x script
     4. chkconfig -add service-name   添加服务

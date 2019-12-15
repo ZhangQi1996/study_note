@@ -43,6 +43,10 @@ function isExistInIgnoreHosts() {
 
 RSS_FILE_PATH=$HBASE_HOME/conf/regionservers
 
+if [[ -d $HBASE_HOME/docs/ ]]; then
+  rm -rf $HBASE_HOME/docs/
+fi
+
 # rss文件中那些存在于ignore_hosts的主机忽略同步
 for rs in $(cat $RSS_FILE_PATH | xargs); do
 	isExistInIgnoreHosts $rs

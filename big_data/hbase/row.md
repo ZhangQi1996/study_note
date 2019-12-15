@@ -3,7 +3,7 @@
 * 与nosql数据库们一样,row key是用来检索记录的主键。访问hbase table中的行，只有三种方式：
     1. 通过单个row key访问
     2. 通过row key的range
-    3. 全表扫描``
+    3. 全表扫描
     * Row key行键 (Row key)可以是任意字符串(最大长度是 64KB，实际应用中长度一般为 10-100bytes)，在hbase内部，row key保存为字节数组。   
     * 存储时，数据按照**Row key的字典序(byte order)排序存储**。设计key时，要充分排序存储这个特性，将经常一起读取的行存储放到一起。(位置相关性)
     * 注意：

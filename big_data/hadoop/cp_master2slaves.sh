@@ -42,6 +42,10 @@ function isExistInIgnoreHosts() {
 
 SLAVES_FILE_PATH=$HADOOP_HOME/etc/hadoop/slaves
 
+if [[ -d $HADOOP_HOME/share/doc/ ]]; then
+  rm -rf $HADOOP_HOME/share/doc/
+fi
+
 # slaves文件中那些存在于ignore_hosts的主机忽略同步
 for slave in $(cat $SLAVES_FILE_PATH | xargs); do
 	isExistInIgnoreHosts $slave
