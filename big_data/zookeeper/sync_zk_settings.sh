@@ -3,6 +3,7 @@
 function usage {
   cat << EOF
 保证本节点到其他节点的ssh相关配置
+默认myid按照zoo.cfg中按照serer.x中先后顺序从1开始指定
 Usage: bash sync_zk_settings.sh [ignore_host ...]
 Tips: ignore_hosts will not be synced..
 EOF
@@ -11,7 +12,7 @@ EOF
 usage
 
 if [[ -z $ZOOKEEPER_HOME ]]; then
-	echo '请配置环境变量HBASE_HOME' >&2
+	echo '请配置环境变量ZOOKEEPER_HOME' >&2
 	exit 1
 fi
 
@@ -45,10 +46,14 @@ if [[ ! -e $ZOOKEEPER_HOME/conf/zoo.cfg ]]; then
 	exit 1
 fi
 
-ZK_LEARNERS=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev ^\s*# | grep -E ^server.[0-9]+= | sed 's/server.[0-9]\+=//' | sed 's/:.*//')
+ZK_SERVERS=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*server.[0-9]+=' | sed 's/\s*server.[0-9]\+=//' | sed 's/:.*//')
+ZK_DATADIR=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*dataDir=' | sed 's/\s*dataDir=//')
 
+[[ -d $ZK_DATADIR ]] || mkdir -p $ZK_DATADIR
+
+c=1
 # server.x指定的那些存在于ignore_hosts的主机忽略同步
-for learner in $ZK_LEARNERS; do
+for learner in $ZK_SERVERS; do
 	isExistInIgnoreHosts $learner
 	if (($? == 1)); then
 		echo 已经忽略$learner的同步
@@ -59,7 +64,8 @@ for learner in $ZK_LEARNERS; do
 		scp ${sync_arr[$i]} root@$learner:${target_arr[$i]} 2>/dev/null >&2
 		if (($? == 0)); then
 			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$learner:${target_arr[$i]}"
-
+      ssh -n root@$learner "echo $c > $ZK_DATADIR/myid; exit" && echo "[root@$learner]$c--->$ZK_DATADIR/myid"
+      ((c++))
 		else
 			echo "本主机${sync_arr[$i]}--->root@$learner:${target_arr[$i]}的同步异常!" >&2
 			echo "请检查本主机到root@$learner的防火墙设置以及ssh连接配置!" >&2
