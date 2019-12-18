@@ -1,5 +1,5 @@
 #!/bin/bash
-# chkconfig 2345 80 20
+# chkconfig: 2345 80 20
 . /etc/init.d/functions
 
 NTPDATE_URL=ntp1.aliyun.com
@@ -11,10 +11,11 @@ start() {
   else
     action '请先安装ntpdate' false
     exit 1
+  fi
 }
 
 stop() {
-
+  return 0
 }
 
 case $1 in

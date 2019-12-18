@@ -12,29 +12,27 @@
     <property>
         <name>hbase.master.info.bindAddress</name>
         <value>master</value>
+        <!--所有涉及zk做协调服务的集群都需要保证集群中的主机名保持跟hosts文件的ip映射名一致-->
     </property>
     <property>
         <name>hbase.regionserver.info.bindAddress</name>
         <value>local</value>
+        <!--所有涉及zk做协调服务的集群都需要保证集群中的主机名保持跟hosts文件的ip映射名一致-->
     </property>
     <property>
         <name>hbase.unsafe.stream.capability.enforce</name>
         <value>true</value>
-<!--        采用本地文件系统模式就可以用false，否则尽量用true-->
+        <!--        采用本地文件系统模式就可以用false，否则尽量用true-->
     </property>
     <property>
         <name>hbase.zookeeper.property.clientPort</name>
-        <value>2222</value>
+        <value>2181</value>
         <description>Property from ZooKeeper's config zoo.cfg.
             The port at which the clients will connect.
         </description>
     </property>
     <property>
         <name>hbase.zookeeper.quorum</name>
-        <value>master</value> <!--采用奇数个，且每个之间仅用逗号不用逗号空格-->
-    </property>
-    <property>
-        <name>hbase.zookeeper.property.dataDir</name>
-        <value>/home/hbase/zookeeper</value>
+        <value>qc</value> <!--采用奇数个，且每个之间仅用逗号不用逗号空格-->
     </property>
 </configuration>

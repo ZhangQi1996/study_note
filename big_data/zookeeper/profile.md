@@ -62,5 +62,11 @@
 * 临时的节点ZNODE
     * ephemeralOwner=session_id
     * 面向会话的，仅存在与一个会话周期中，当会话周期结束就会将这个znode删除，临时znode没有子节点
+    * 会由一个session 的过期时间，当cli断开连接的时候则session就会开始进入倒计时，当timeout(指的是意外中断)过去后，则这个znode
+        就会被删除。
+    * 若是客户端主动的close则临时节点会主动直接删除 
 * 持久化节点
     * ephemeralOwner=0x0
+* 注意以上两种节点都可以配有序列化
+    * 也就是create -s
+    * znode会带有一个编号不至于产生命名冲突
