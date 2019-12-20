@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 本脚本用于操作ZK集群{start|start-foreground|stop|restart|status|print-cmd}
+# 本脚本用于操作ZK集群{start|stop|restart|status}
 function usage {
   cat << EOF
 保证本节点到其他节点的ssh相关配置

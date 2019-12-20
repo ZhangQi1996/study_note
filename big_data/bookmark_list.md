@@ -15,5 +15,7 @@
 #### hbase
 * hbase官方文档
     * http://hbase.apache.org/book.html
+* hbase api
+    * https://hbase.apache.org/apidocs/index.html
 * hbase的默认配置
     * http://hbase.apache.org/book.html#hbase_default_configurations

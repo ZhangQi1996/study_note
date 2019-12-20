@@ -1,0 +1,26 @@
+#### hbase在zk中存储的节点树
+* /hbase
+    * /backup-masters
+        * /bknode,16000,1576741040241
+        * 存放备master的节点，节点名包括主机名，rpc端口(16000)，注册到zk的时间戳 
+    * /draining
+    * /flush-table-proc
+    * /hbaseid
+    * /master
+    * /master-maintenance
+    * /meta-region-server
+        * rs的元数据放置在这个节点的data中
+    * /namespace
+    * /online-snapshot
+    * /recovering-regions
+    * /region-in-transition
+    * /replication
+    * /rs
+        * /slave1,16020,1576741040241
+        * 存放备region server的节点，节点名包括主机名，rpc端口(16020)，注册到zk的时间戳
+    * /running
+    * /splitWAL
+    * /switch
+    * /table
+        * hbase中含有的表
+    * /table-lock
