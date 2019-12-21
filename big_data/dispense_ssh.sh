@@ -76,12 +76,9 @@ EOF
   return 0
 }
 
-
-if cat $1 | while read line
+if cat $1 | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | while read line
   do
-    if [[ $line =~ ^[[:blank:]]*$ ]]; then
-      continue
-    elif ! copyPubIdToTargetHost $(echo $line | xargs); then # 复制失败
+    if ! copyPubIdToTargetHost $(echo -n $line | xargs); then # 复制失败
       exit 1
     fi
   done; then

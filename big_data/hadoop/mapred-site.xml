@@ -62,6 +62,11 @@
         <!--jobhistory服务器的rpc端口-->
     </property>
     <property>
+        <name>mapreduce.jobhistory.webapp.address</name>
+        <value>master:19888</value> <!--默认值: 0.0.0.0:19888 -->
+        <!--jobhistory服务器的web端口-->
+    </property>
+    <property>
         <name>mapreduce.jobtracker.address</name>
         <value>master:8021</value> <!--默认值: local -->
         <!--jobtracker的rpc端口-->
