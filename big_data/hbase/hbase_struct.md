@@ -1,3 +1,87 @@
+#### HBASE
+* 数据库
+    * 特点
+        1. 面向列
+        2. 可伸缩
+        3. 实时读写
+    * 数据量
+        1. 十亿级别的行
+        2. 百万级别的列
+    * 速度快
+        1. 充分利用了内存
+        2. 使用了LSM树
+        3. 缓存机制
+        4. 文件是顺序读
+* 数据模型
+    * rowkey
+        1. 唯一主键
+        2. 字典序
+        3. 最长64K，推荐10-100B
+    * col family 列族
+        1. 一组列的集合
+        2. 列族作为表的schema定义给出
+        3. 列族是权限存储的最小单元
+    * qualifier标识
+        1. 列
+        2. 可以动态的随机插入
+        3. 表定义之后没有限制列，随着值得插入也把列插入
+        4. 列必须归于某一个列族
+    * timestamp时间戳
+        1. 64位LONG，精度毫秒
+        2. 起版本号的作用，一个cell中存在多个版本的信息
+        3. 时间戳可以自己定义，但是不推荐
+    * cell
+        1. 存储数据中的最小单元（逻辑）
+        2. 存储kv格式的数据
+            1. key: rowkey+col family+qualifier+timestamp
+            2. val: value
+        3. 以字节数组存储
+ * 架构
+    * hbase是主从架构
+    * 角色
+        1. cli 操作hbase的接口，并维护cli的缓存
+        2. zk
+            1. 保证任何时刻集群中任何时刻只有一个active的master
+            2. 存储所有region的meta数据
+            3. 监控所有的rs上下线信息，实时通过matcher事件通知给master
+            4. 存储相关的schema数据
+        3. master
+            1. 分配region
+            2. 保证整个集群所有rs的负载均衡
+            3. 当发现一个rs宕机后，通过在zk中元数据重新分配region
+            4. region过大，region分裂
+        4. regionserver
+            * 负责接收cli的读写请求，处理对应的region的IO
+            * 某个region过大，分裂
+            1. region
+                * 相当于表的概念
+                * 一张表至少对应一个region
+                * region过大会分裂
+            2. store
+                * 相当于列族
+                * 使用LSM的数据模型
+                1. memstore
+                    * 位于内存中
+                    * 每一个store中有一个memstore
+                2. storefile
+                    * 磁盘存储空间，将数据持久化
+                    * 每个region有一个或多个storefile
+                    * 可合并
+    * WAL (write ahead log)
+        1. 防止数据丢失
+        2. 先写内存，再溢写到hdfs上，异步
+    * 读写
+* java API
+    * Admin 管理表
+        1. createTable
+        2. disableTable
+        3. deleteTable
+    * Table 管理数据
+        1. put
+        2. get
+        3. scan
+        4. delete
+                
 #### 基本
 * HBase表最初只有一个HRegion保存数据，随着数据写入，HRegion越来越大，达到一定的阈值后会自动分裂为两个HRegion,
     随着这个过程不停的进行，HBase表中的数据会被划分为若干个HRegion进行管理

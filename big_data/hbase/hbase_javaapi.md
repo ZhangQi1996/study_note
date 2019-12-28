@@ -74,7 +74,71 @@ public class Example {
 }
 ```
 #### 增删查
-* 增
 ```
+public class Demo {
 
+    Admin admin;
+    Connection conn;
+    Table table;
+
+    @Before
+    public void connect() throws IOException {
+        Configuration conf = new Configuration();
+        conf.set("hbase.zookeeper.quorum", "qc");
+        conn = ConnectionFactory.createConnection(conf);
+        table = conn.getTable(TableName.valueOf("t"));
+    }
+
+    @Test
+    public void put() throws IOException {
+        String rowKey = "2";
+        Put put = new Put(rowKey.getBytes());
+        put.addColumn("f".getBytes(), "name".getBytes(), "phoebe".getBytes());
+        put.addColumn("f".getBytes(), "age".getBytes(), "22".getBytes());
+        table.put(put);
+    }
+
+    @Test
+    public void get() throws IOException {
+        table = conn.getTable(TableName.valueOf("t"));
+        Get get = new Get("2".getBytes());
+        // 为了解决查询过多列
+        get.addColumn("f".getBytes(), "name".getBytes());
+        Result rst = table.get(get);
+        Cell c = rst.getColumnLatestCell("f".getBytes(), "name".getBytes());
+        System.out.println(Bytes.toString(CellUtil.cloneRow(c)));
+        System.out.println(Bytes.toString(CellUtil.cloneValue(c)));
+    }
+
+    @Test
+    public void scan() throws IOException {
+        Scan scan = new Scan();
+        ResultScanner scanner = table.getScanner(scan);
+        for (Result rst: scanner) {
+            Cell c = rst.getColumnLatestCell("f".getBytes(), "name".getBytes());
+            System.out.println(Bytes.toString(CellUtil.cloneRow(c)));
+            System.out.println(Bytes.toString(CellUtil.cloneValue(c)));
+        }
+    }
+
+    @Test
+    public void delete() throws IOException {
+        Delete del = new Delete("2".getBytes());
+        // 删除cell中的最新版本（最新时间戳的）的数据
+        del.addColumn("f".getBytes(), "col".getBytes());
+        // 删除cell中特定版本的（时间戳）的数据
+        del.addColumn("f".getBytes(), "col".getBytes(), 123L);
+        // 删除这个f:col下cell中所有版本的数据
+        del.addColumns("f".getBytes(), "col".getBytes());
+        // 删除这个f:col下cell中小于等于特定时间戳的所有数据
+        del.addColumns("f".getBytes(), "col".getBytes(), 123L);
+        table.delete(del);
+    }
+
+    @After
+    public void close() {
+        IOUtils.closeStream(admin);
+        IOUtils.closeStream(conn);
+    }
+}
 ```

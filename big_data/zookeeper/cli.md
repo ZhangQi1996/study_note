@@ -1,4 +1,8 @@
 #### 通过键入zkCli.sh进入zk的shell环境
+* zkCli.sh  -timeout 0  -r  -server  ip:port
+    * -timeout：指定当前会话的超时时间。zookeeper依靠与客户端之间的心跳判断一个会话是否有效，timeout指服务器如果在timeout指定的时间内没有收到客户端的心跳包，就认为这个客户端失效。单位毫秒。 
+    * -r：read-only。zookeeper的只读模式指zookeeper的服务器如果和集群中半数或半数以上的服务器失去连接以后，该服务器就不在处理客户端的请求了，但有时候任然希望这种故障发生时，机器可以向外提供读服务，这种情况下就可以使用只读模式。 
+    * -server: 表示想要连接的服务器地址和端口。
 * 在shell环境下
     * **注意目录均是绝对路径**
     * 键入help查看帮助

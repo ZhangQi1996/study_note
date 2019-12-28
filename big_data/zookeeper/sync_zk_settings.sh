@@ -3,9 +3,11 @@
 function usage {
   cat << EOF
 保证本节点到其他节点的ssh相关配置
-默认myid按照zoo.cfg中按照serer.x中先后顺序从1开始指定
-Usage: bash sync_zk_settings.sh [ignore_host ...]
-Tips: ignore_hosts will not be synced..
+默认myid按照zoo.cfg中按照server.x中先后顺序从1开始指定
+Usage: bash sync_zk_settings.sh [-h hosts-pairs] [-i ignore_host-pairs] [-n]
+Tips: -h hosts-pairs will be used, and donnot extract hosts from zoo.cfg..(default: extract from zoo.cfg)
+      -i ignore_hosts-pairs just like 'host1,host2' will not be synced..(default: no hosts will be ignored)
+      -n means myid will not be set...
 EOF
 }
 
@@ -16,8 +18,41 @@ if [[ -z $ZOOKEEPER_HOME ]]; then
 	exit 1
 fi
 
-# 全体参数的列表
-args=$@
+# ignore_hosts的列表
+args=
+
+# 是否设置myid
+is_set_myid=true
+
+if [[ ! -e $ZOOKEEPER_HOME/conf/zoo.cfg ]]; then
+	echo 请确保存在$ZOOKEEPER_HOME/conf/zoo.cfg文件 >&2
+	exit 1
+fi
+
+ZK_SERVERS=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*server.[0-9]+=' | sed 's/\s*server.[0-9]\+=//' | sed 's/:.*//')
+ZK_DATADIR=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*dataDir=' | sed 's/\s*dataDir=//')
+
+while [[ $# > 0 ]]; do
+  case $1 in
+  -h)
+    [[ -z $2 ]] && echo '-i 后未带参数' >&2 && exit 1
+    ZK_SERVERS=$(echo -n $2 | tr ',' ' ')
+    shift 2
+    ;;
+  -i)
+    [[ -z $2 ]] && echo '-i 后未带参数' >&2 && exit 1
+    args=$(echo -n $2 | tr ',' ' ')
+    shift 2
+    ;;
+  -n)
+    is_set_myid=false
+    shift
+    ;;
+  *)
+    usage
+    exit 1
+  esac
+done
 
 # 需要同步的目录
 sync_arr=(
@@ -41,14 +76,6 @@ function isExistInIgnoreHosts() {
 	return 0
 }
 
-if [[ ! -e $ZOOKEEPER_HOME/conf/zoo.cfg ]]; then
-	echo 请确保存在$ZOOKEEPER_HOME/conf/zoo.cfg文件 >&2
-	exit 1
-fi
-
-ZK_SERVERS=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*server.[0-9]+=' | sed 's/\s*server.[0-9]\+=//' | sed 's/:.*//')
-ZK_DATADIR=$(cat $ZOOKEEPER_HOME/conf/zoo.cfg | grep -Ev '^\s*#' | grep -E '^\s*dataDir=' | sed 's/\s*dataDir=//')
-
 [[ -d $ZK_DATADIR ]] || mkdir -p $ZK_DATADIR
 
 c=1
@@ -64,7 +91,7 @@ for learner in $ZK_SERVERS; do
 		scp ${sync_arr[$i]} root@$learner:${target_arr[$i]} 2>/dev/null >&2
 		if (($? == 0)); then
 			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$learner:${target_arr[$i]}"
-      ssh -n root@$learner "echo $c > $ZK_DATADIR/myid; exit" && echo "[root@$learner]$c--->$ZK_DATADIR/myid"
+      $is_set_myid && ssh -n root@$learner "echo $c > $ZK_DATADIR/myid; exit" && echo "[root@$learner]$c--->$ZK_DATADIR/myid"
       ((c++))
 		else
 			echo "本主机${sync_arr[$i]}--->root@$learner:${target_arr[$i]}的同步异常!" >&2
