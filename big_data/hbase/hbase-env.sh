@@ -1,0 +1,1 @@
+export HBASE_MANAGES_ZK=false # 不使用HBase内置的ZK

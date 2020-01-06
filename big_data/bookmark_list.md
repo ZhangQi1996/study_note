@@ -5,12 +5,16 @@
     * http://hadoop.apache.org/docs/r2.7.7/api/index.html
 
 #### hive
+* hive DOC
+    * https://cwiki.apache.org/confluence/display/Hive/Home
 * hive的表定义，以及结构修改
-    *https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
+    * https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL
 * hive的增删改查
     * https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DML
 * hive的表的导入导出
     * https://cwiki.apache.org/confluence/display/Hive/LanguageManual+ImportExport
+* hive与hbase整合
+    * https://cwiki.apache.org/confluence/display/Hive/HBaseIntegration
 
 #### hbase
 * hbase官方文档

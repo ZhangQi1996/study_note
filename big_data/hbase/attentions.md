@@ -1,0 +1,1 @@
+#### 注意在hbase的2.x高版本中，hbase classpath输出默认是不包含$HBASE_HOME/lib/*.jar的

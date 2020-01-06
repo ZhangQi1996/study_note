@@ -161,12 +161,12 @@ public class Demo {
 }
 ```
 #### Filter
-0. FilterList
+1. FilterList
     * FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ONE); // 保证只要通过其中给一个过滤即可
     * FilterList list = new FilterList(FilterList.Operator.MUST_PASS_ALL); // 要求全部满足要求
     * FilterListWithOR // 实测目似不等价于new FilterList(FilterList.Operator.MUST_PASS_ONE);
     * FilterListWithAND // 实测目似不等价于new FilterList(FilterList.Operator.MUST_PASS_ALL);
-1. 列值查询
+2. 列值查询
     * 根据列值筛选符合条件的cell或者row
     1. SingleColumnValueFilter类
         * 根据列族，列和与值得相关操作来获得**整个ROW(包含多列)**
@@ -200,7 +200,7 @@ public class Demo {
           new BinaryComparator(Bytes.toBytes("value")));
         scan.setFilter(vf);
         ```
-2. 比较器
+3. 比较器
     * 用于在做筛选的时候比较部分
     1. RegexStringComparator类
         * 支持java的正则表达式判断val是否符合条件
@@ -231,7 +231,7 @@ public class Demo {
         * 构造函数: BinaryPrefixComparator(byte[])
         * value与目标byte数组的prefix部分进行比较
     4. BinaryComparator类
-3. KeyVal 中的元数据筛选
+4. KeyVal 中的元数据筛选
     1. 若列族名未知可通过FamilyFilter做筛选
     2. 通过QualifierFilter做筛选 
     3. ColumnPrefixFilter就是列名前缀的筛选
@@ -272,13 +272,13 @@ public class Demo {
         }
         rs.close();
         ```
-    * RowFilter(CompareOperator op, ByteArrayComparable rowComparator)用于row-key的筛选
+    5 RowFilter(CompareOperator op, ByteArrayComparable rowComparator)用于row-key的筛选
         * CompareOperator操作标志EQUAL，NOT_EQUAL, etc.
         * ByteArrayComparable像是BinaryPrefixComparator类
-    * PrefixFilter(byte[] prefix)用于筛选出由相同prefix的row-key
+    6 PrefixFilter(byte[] prefix)用于筛选出由相同prefix的row-key
         * 与RowFilter(CompareOperator.EQUAL, new BinaryPrefixComparator(prefix))等价
-    * FirstKeyOnlyFilter用于获取每行的第一个额keyval，常常用于求行数
-4. Filter的装饰器
+    7 FirstKeyOnlyFilter用于获取每行的第一个额keyval，常常用于求行数
+5. Filter的装饰器
     1. SkipFilter(Filter filter)
         * 凡是filter所通过的cell，其所在的行均保留
         * 注意是行skip
