@@ -52,7 +52,7 @@ $ ./bin/storm jar examples/storm-starter/storm-starter-topologies-0.9.4.jar stor
       - "node2"
       - "node3"
     
-    storm.local.dir: "/tmp/storm"
+    storm.local.dir: "/var/storm"
     
     nimbus.host: "node1"
     

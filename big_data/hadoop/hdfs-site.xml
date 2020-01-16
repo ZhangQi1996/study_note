@@ -19,7 +19,7 @@
     <value>64m</value>  <!--默认值: 128m-->
     <description>块的大小</description>
 </property>
-<!--file://${hadoop.tmp.dir}/dfs/name,注意要先生成这个目录，在这里是由/tmp/hadoop/dfs/name这个目录-->
-<!--file://${hadoop.tmp.dir}/dfs/data,注意要先生成这个目录，在这里是由/tmp/hadoop/dfs/data这个目录-->
-<!--file://${hadoop.tmp.dir}/dfs/namesecondary,注意要先生成这个目录，在这里是由/tmp/hadoop/dfs/namesecondary这个目录-->
+<!--file://${hadoop.tmp.dir}/dfs/name,注意要先生成这个目录，在这里是由/var/hadoop/dfs/name这个目录-->
+<!--file://${hadoop.tmp.dir}/dfs/data,注意要先生成这个目录，在这里是由/var/hadoop/dfs/data这个目录-->
+<!--file://${hadoop.tmp.dir}/dfs/namesecondary,注意要先生成这个目录，在这里是由/var/hadoop/dfs/namesecondary这个目录-->
 </configuration>

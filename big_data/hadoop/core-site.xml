@@ -24,7 +24,7 @@
     </property>
     <property>
         <name>hadoop.tmp.dir</name>
-        <value>/tmp/hadoop</value>    <!--默认值: /tmp/hadoop-${user.name}-->
+        <value>/var/hadoop</value>    <!--默认值: /tmp/hadoop-${user.name}-->
         <description>临时文件存放的地方</description>
     </property>
 

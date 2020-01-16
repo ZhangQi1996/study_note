@@ -18,9 +18,10 @@ stop() {
   return 0
 }
 
+RETVAL=0
 case $1 in
 start)
-  start
+  start || action 'start sync_date in failure..' false || RETVAL=1
   ;;
 stop)
   stop
@@ -29,5 +30,7 @@ stop)
   cat <<EOF
   Usage: service sync_date stop/start
 EOF
+  RETVAL=1
   ;;
 esac
+exit $RETVAL

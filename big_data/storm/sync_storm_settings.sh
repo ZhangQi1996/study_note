@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# 本脚本用于同步HADOOP集群中的一些常见配置文件
+# 本脚本用于同步STORM集群中的一些常见配置文件
 function usage() {
 	cat <<EOF
 保证本节点到其他节点的ssh相关配置
-Usage: bash sync_hadoop_settings.sh [ignore_host ...]
+Usage: bash sync_storm_settings.sh [ignore_host ...]
 Tips: ignore_hosts will not be synced..
 EOF
 }
 
 usage
 
-if [[ -z $HADOOP_HOME ]]; then
-	echo '请配置环境变量HADOOP_HOME' >&2
+if [[ -z $STORM_HOME ]]; then
+	echo '请配置环境变量STORM_HOME' >&2
 	exit 1
 fi
 
@@ -20,22 +20,14 @@ args=$@
 
 # 需要同步的目录
 sync_arr=(
-	$HADOOP_HOME/etc/hadoop/core-site.xml
-	$HADOOP_HOME/etc/hadoop/hdfs-site.xml
-	$HADOOP_HOME/etc/hadoop/yarn-site.xml
-	$HADOOP_HOME/etc/hadoop/hadoop-env.sh
-	$HADOOP_HOME/etc/hadoop/mapred-env.sh
-	$HADOOP_HOME/etc/hadoop/yarn-env.sh
+	$STORM_HOME/conf/storm.yaml
+	$STORM_HOME/conf/supervisors
 )
 
 # 同步到目标主机的路径，当目标主机的路径不一致时，需要修改
 target_arr=(
-	$HADOOP_HOME/etc/hadoop/core-site.xml
-	$HADOOP_HOME/etc/hadoop/hdfs-site.xml
-	$HADOOP_HOME/etc/hadoop/yarn-site.xml
-	$HADOOP_HOME/etc/hadoop/hadoop-env.sh
-	$HADOOP_HOME/etc/hadoop/mapred-env.sh
-	$HADOOP_HOME/etc/hadoop/yarn-env.sh
+	$STORM_HOME/conf/storm.yaml
+	$STORM_HOME/conf/supervisors
 )
 
 function isExistInIgnoreHosts() {
@@ -50,10 +42,10 @@ function isExistInIgnoreHosts() {
 	return 0
 }
 
-SLAVES_FILE_PATH=$HADOOP_HOME/etc/hadoop/slaves
+SLAVES_FILE_PATH=$STORM_HOME/conf/supervisors
 
 # slaves文件中那些存在于ignore_hosts的主机忽略同步
-for slave in $(cat $SLAVES_FILE_PATH | xargs); do
+for slave in $(xargs < $SLAVES_FILE_PATH); do
 	isExistInIgnoreHosts $slave
 	if (($? == 1)); then
 		echo 已经忽略$slave的同步
