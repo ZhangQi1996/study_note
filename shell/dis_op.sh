@@ -28,7 +28,7 @@ while (( $# > 0 )); do
     ;;
   -e)
     (( $# < 2 )) && usage && exit 1
-    HOSTS=$(echo $2 | tr ',' ' ')
+    HOSTS=$(echo $2 | tr ',' ' ' | xargs)
     shift 2
     ;;
   -c)
