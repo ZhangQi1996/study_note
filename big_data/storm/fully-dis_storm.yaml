@@ -1,12 +1,9 @@
 # 配置zk
 storm.zookeeper.servers:
   - "qc"
-# 配置目录(提交任务的存放路径)
+# 配置目录
 storm.local.dir: "/var/storm"
-# 配置主节点
-# nimbus.host: "master" # 过时配置
-# 配置nimbus leader 代替nimbus.host
-# 配置多个用于HA，会自动选出leader
+# 配置nimbus leader
 nimbus.seeds: ["master"]
 # 配置从节点的工作端口
 supervisor.slots.ports:
@@ -14,3 +11,7 @@ supervisor.slots.ports:
   - 6701
   - 6702
   - 6703
+
+# 配置drpc svr
+drpc.servers:
+  - "master"

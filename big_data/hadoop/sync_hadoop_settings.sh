@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 本脚本用于同步HADOOP集群中的一些常见配置文件
 function usage() {
 	cat <<EOF
@@ -60,7 +60,7 @@ for slave in $(cat $SLAVES_FILE_PATH | xargs); do
 		continue # 存在就忽略
 	fi
 	# 同步
-	for ((i = 0; i < ${#sync_arr[@]}; i++)); do
+	for ((i=0; i<${#sync_arr[@]}; i++)); do
 		scp ${sync_arr[$i]} root@$slave:${target_arr[$i]} 2>/dev/null >&2
 		if (($? == 0)); then
 			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$slave:${target_arr[$i]}"

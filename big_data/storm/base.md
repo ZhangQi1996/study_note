@@ -60,3 +60,36 @@
 2. 删除job（由于是流式处理，所以job一直在运行）
     * 格式: $STORM_HOME/bin/storm kill topology-name [-w wait-time-secs]
 #### storm的并发机制
+![](imgs/storm_concurrent.png)
+1. 设置一个拓扑作业中的worker进程的数量
+    * Config.setNumWorkers(int workers)
+2. 设置executor线程的数量
+    * TopologyBuilder.setBolt(String id, IRichBolt bolt, Number parallelism_hint)，其中并行度就是线程数量
+3. 设置task数量
+    * ComponentConfigurationDeclarer.setNumTasks(Number val)
+    ```
+    // 设置executor的数量为2，task数量为4
+    builder.setBolt("2", new LineHandlerBolt(), 2).setNumTasks(4).shuffleGrouping("1"); 
+    ```
+* 各种数量的分配
+    * 着重阅读以下图片
+    ![](imgs/storm_num_alloc.png)
+* 重新调整（调整负载）
+    * 虽然每个spout/bolt的总的task任务数在代码中定义死了无法再动态修改，但是可以通过命令行rebalance来完成
+        这个拓扑作业中的worker进程数量，以及每个executor线程数量的动态修改。这样就完成了一个负载均衡。
+    * 比如，对于id为xxx的spout/bolt,原先是由1个线程共4个task来工作，虽然4个task的数量无法更改，但是通过
+        调整线程的数量为2，这样就会通过rebalance达到每个线程分配两个task的效果，从而达到调整负载的效果。
+        再比如，通过调整worker的数量，来完成所有worker中的线程数量的再分配，以及当集群中加入新的supervisor时，
+        达到所有worker在所有的supervisor中的一个负载均衡（新的supervisor中分到worker进程）。
+    * rebalance命令
+        * 格式： $STORM_HOME/bin/[storm rebalance topology-name [-w wait-time-secs] [-n new-num-workers] [-e component=parallelism]* 
+#### storm drpc
+* DRPC (distributed remote procedure call)   
+    ![](imgs/storm_drpc.png) 
+    * DRPC是通过DRPC svr来实现分布式RPC功能的，其中DRPC svr负责接收rpc请求，并将该请求发送到正在storm中
+        运行的拓扑作业，并等待作业为其返回处理的结果。
+    * 目的：
+        * 充分利用storm的计算能力实现高密度的并行实时运算（storm接收若干数据流的输入，数据在拓扑作业中运行完成后
+            通过drpc将结果返回）    
+    * 参见网址
+        * http://storm.apache.org/releases/1.2.3/Distributed-RPC.html 

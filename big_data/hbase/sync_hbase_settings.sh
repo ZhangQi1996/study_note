@@ -52,7 +52,7 @@ for rs in $(cat $RSS_FILE_PATH | xargs); do
 		continue # 存在就忽略
 	fi
 	# 同步
-	for ((i = 0; i < ${#sync_arr[@]}; i++)); do
+	for ((i=0; i<${#sync_arr[@]}; i++)); do
 		scp ${sync_arr[$i]} root@$rs:${target_arr[$i]} 2>/dev/null >&2
 		if (($? == 0)); then
 			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$rs:${target_arr[$i]}"

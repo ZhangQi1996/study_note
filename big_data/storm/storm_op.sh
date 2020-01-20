@@ -1,18 +1,20 @@
 #!/bin/bash
-# 用于启动/停止storm集群
+# 用于启动/停止storm集群/ui/logviewer
 function usage {
   cat << EOF
 确保ssh无秘配置
 Usage: sh storm_op.sh <[cl]|ui|lv start|stop> [options]
 Tips: 1. it supports a launch happended at any machine, and just launchs
       according to the storm.yaml file and the supervisors file.
-      2. options mean that they will be provided the corresponding cmd to exec.
+      2. options mean that they will be provided for the corresponding cmd to exec.
 E.G.
 start/stop storm cluster:
   1. sh storm_op.sh cl start/stop
   2. sh storm_op.sh start/stop
+  PS: start/stop storm cluster including nimbus, supervisors and drpc servers
 start/stop storm ui:
   sh storm_op.sh ui start/stop
+  PS: start/stop storm ui launched just on the machine executing this cmd.
 start/stop storm log viewer
   1. sh storm_op.sh lv start/stop PS: means launching/shutdowning log viewer on every supervisor
   2. sh storm_op.sh lv start/stop --supervisors="host1,host2" PS: means launching/shutdowning log viewer on host1 and host2
@@ -26,13 +28,15 @@ EOF
 
 nimbus_seeds=
 supervisors_hosts=
+drpc_hosts=
+
 get_nimbus() {
   [[ -f $STORM_HOME/conf/storm.yaml ]] || action '$STORM_HOME/conf/storm.yaml文件不存在' false || exit 1
   # 去除注释
-  local nimbus=$(cat $STORM_HOME/conf/storm.yaml | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | grep -E '^nimbus.host')
+  local nimbus=$(cat $STORM_HOME/conf/storm.yaml | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | grep -E '^\s*nimbus.host')
   # 在较新版本中nimbus.host项已经过时
   [[ -n $nimbus ]] && echo '[WARNING]$STORM_HOME/conf/storm.yaml文件中配置的nimbus.host项为过时项，请更新为nimbus.seeds项' >&2
-  nimbus=$(cat $STORM_HOME/conf/storm.yaml | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | grep -E '^nimbus.seeds')
+  nimbus=$(cat $STORM_HOME/conf/storm.yaml | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | grep -E '^\s*nimbus.seeds')
   if [[ -z $nimbus ]]; then
     echo '[WARNING]由于storm.yaml中没有配置nimbus.seeds项，故采用默认配置(启动localhost作为nimbus leader)' >&2
     nimbus_seeds='localhost'
@@ -49,124 +53,98 @@ get_supervisors() {
   [[ -n $supervisors_hosts ]] || action '$STORM_HOME/conf/supervisors文件内容为空,请重新配置' false || exit 1
 }
 
-nimbus_start_cmd() {
+get_drpcs() {
+  [[ -f $STORM_HOME/conf/storm.yaml ]] || action '$STORM_HOME/conf/storm.yaml文件不存在' false || exit 1
+  local is_contain_drpc=false
+  local tmp_file='4c4a685c-b475-4107-806a-62e6515e1d7a.tmp'
+  # 去除注释并导入零时文件中
+  cat $STORM_HOME/conf/storm.yaml | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' > $tmp_file
+  # 若采用管道方式read，则产生子进程，变量作用域不共享，故采用重定向方式
+  # 而重定向方式仅仅支持文件/目录的导入方式，故借助临时文件做跳板
+  while read line; do
+    if ! $is_contain_drpc; then
+      echo -n $line | grep -E '^\s*drpc.servers' >/dev/null 2>&1 && is_contain_drpc=true
+    else # 要是内容值已经包含了drpc项就向下查找结果
+      # 若该行由-开头，则判定为目标行
+      if echo -n $line | grep -E '^\s*-' >/dev/null 2>&1; then
+        drpc_hosts=$drpc_hosts' '$(echo -n $line | sed 's/^\s*-\s*'// | sed "s/['\"]//g")
+      else
+        break
+      fi
+    fi
+  done < $tmp_file
+  # 删除临时文件
+  rm -f $tmp_file
+  # 处理可能存在的全部空格的问题
+  drpc_hosts=$(echo -n $drpc_hosts | sed 's/^\s*$//' | xargs)
+  # 判断是否含有drpc.servers字段
+  [[ -n $drpc_hosts ]] || action '[ERROR]storm.yaml中没有配置drpc.servers项或该项值的配置不合法，请配置后再试...' false || exit 1
+}
+
+# 传递给ssh的cmd
+start_cmd() {
+  local sec=
+  local caller=$1
+  shift
+  case $caller in
+  nimbus)
+    sec=8
+    ;;
+  logviewer)
+    sec=5
+    ;;
+  *)
+    sec=4
+    ;;
+  esac
   cat << EOF
-  [[ -f /var/run/storm_nimbus.pid ]] && echo 'nimbus已正在运行' >&2 && exit;
+  [[ -f /var/run/storm_$caller.pid ]] && echo '$caller已正在运行' >&2 && exit;
   [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  \$STORM_HOME/bin/storm nimbus $@ >> \$STORM_HOME/logs/nimbus.out & 2>&1;
+  \$STORM_HOME/bin/storm $caller $@ >> \$STORM_HOME/logs/$caller.out & 2>&1;
   if [[ \$? == 0 ]]; then
-    echo \$! > /var/run/storm_nimbus.pid;
-    touch /var/lock/subsys/storm_nimbus;
-    for i in {1..8}; do
+    echo \$! > /var/run/storm_$caller.pid;
+    touch /var/lock/subsys/storm_$caller;
+    for i in {1..$sec}; do
       echo -n '.';
       sleep 1;
     done;
-    echo -e '\n启动nimbus成功';
-    echo '日志记录位置:'\$STORM_HOME/logs/nimbus.log;
+    echo -e '\n启动$caller成功';
+    echo '日志记录位置:'\$STORM_HOME/logs/$caller.out,log;
   else
-    echo 'ERROR 启动nimbus失败' >&2;
+    echo 'ERROR:启动$caller失败' >&2;
   fi;
   exit;
 EOF
 }
-nimbus_stop_cmd() {
+stop_cmd() {
+  local sec=
+  local caller=$1
+  shift
+  case $caller in
+  nimbus)
+    sec=8
+    ;;
+  logviewer)
+    sec=5
+    ;;
+  *)
+    sec=4
+    ;;
+  esac
   cat << EOF
-  if ! [[ -f /var/run/storm_nimbus.pid ]]; then
-    echo 'nimbus未在运行状态，关闭失败..' >&2 && exit;
+  if ! [[ -f /var/run/storm_$caller.pid ]]; then
+    echo '$caller未在运行状态，关闭失败..' >&2 && exit;
   fi;
   [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  pid=\$(xargs < /var/run/storm_nimbus.pid);
-  if kill -QUIT \$pid >> \$STORM_HOME/logs/nimbus.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已正常关闭nimbus';
-    rm -f /var/run/storm_nimbus.pid /var/lock/subsys/storm_nimbus;
-  elif kill -9 \$pid >> \$STORM_HOME/logs/nimbus.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已强制关闭nimbus';
-    rm -f /var/run/storm_nimbus.pid /var/lock/subsys/storm_nimbus;
+  pid=\$(xargs < /var/run/storm_$caller.pid);
+  if kill -QUIT \$pid >> \$STORM_HOME/logs/$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
+    echo '已正常关闭$caller';
+    rm -f /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller;
+  elif kill -9 \$pid >> \$STORM_HOME/logs/$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
+    echo '已强制关闭$caller';
+    rm -f /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller;
   else
-    echo 'ERROR:关闭nimbus失败' >&2;
-  fi;
-  exit;
-EOF
-}
-
-supervisor_start_cmd() {
-  cat << EOF
-  [[ -f /var/run/storm_supervisor.pid ]] && echo 'supervisor已正在运行' >&2 && exit;
-  [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  \$STORM_HOME/bin/storm supervisor $@ >> \$STORM_HOME/logs/supervisor.out & 2>&1;
-  if [[ \$? == 0 ]]; then
-    echo \$! > /var/run/storm_supervisor.pid;
-    touch /var/lock/subsys/storm_supervisor;
-    for i in {1..4}; do
-      echo -n '.';
-      sleep 1;
-    done;
-    echo -e '\n启动supervisor成功';
-    echo '日志记录位置:'\$STORM_HOME/logs/supervisor.log;
-  else
-    echo 'ERROR 启动supervisor失败' >&2;
-  fi;
-  exit;
-EOF
-}
-supervisor_stop_cmd() {
-  cat << EOF
-  if ! [[ -f /var/run/storm_supervisor.pid ]]; then
-    echo 'supervisor未在运行状态，关闭失败..' >&2 && exit;
-  fi;
-  [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  pid=\$(xargs < /var/run/storm_supervisor.pid);
-  if kill -QUIT \$pid >> \$STORM_HOME/logs/supervisor.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已正常关闭supervisor';
-    rm -f /var/run/storm_supervisor.pid /var/lock/subsys/storm_supervisor;
-  elif kill -9 \$pid >> \$STORM_HOME/logs/supervisor.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已强制关闭supervisor';
-    rm -f /var/run/storm_supervisor.pid /var/lock/subsys/storm_supervisor;
-  else
-    echo 'ERROR:关闭supervisor失败' >&2;
-  fi;
-  exit;
-EOF
-}
-
-lv_start_cmd() {
-  cat << EOF
-  echo '[STORM LOGVIEWER:'\$(hostname)']正在启动storm log viewer';
-  [[ -f /var/run/storm_logviewer.pid ]] && echo 'storm log viewer已正在运行' >&2 && exit;
-  [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  \$STORM_HOME/bin/storm logviewer $@ >> \$STORM_HOME/logs/logviewer.out & 2>&1;
-  if [[ \$? == 0 ]]; then
-    echo \$! > /var/run/storm_logviewer.pid;
-    touch /var/lock/subsys/storm_logviewer;
-    for i in {1..5}; do
-      echo -n '.';
-      sleep 1;
-    done;
-    echo -e '\n启动storm log viewer成功';
-    echo '日志记录位置:'\$STORM_HOME/logs/logviewer.log;
-  else
-    echo 'ERROR 启动storm log viewer失败' >&2;
-  fi;
-  exit;
-EOF
-}
-
-lv_stop_cmd() {
-  cat << EOF
-  echo '['\$(hostname)']正在关闭storm log viewer';
-  if ! [[ -f /var/run/storm_logviewer.pid ]]; then
-    echo 'storm log viewer未在运行状态，关闭失败..' >&2 && exit;
-  fi;
-  [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  pid=\$(xargs < /var/run/storm_logviewer.pid);
-  if kill -QUIT \$pid >> \$STORM_HOME/logs/logviewer.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已正常关闭storm log viewer';
-    rm -f /var/run/storm_logviewer.pid /var/lock/subsys/storm_logviewer;
-  elif kill -9 \$pid >> \$STORM_HOME/logs/logviewer.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
-    echo '已强制关闭storm log viewer';
-    rm -f /var/run/storm_logviewer.pid /var/lock/subsys/storm_logviewer;
-  else
-    echo 'ERROR:关闭storm log viewer失败' >&2;
+    echo 'ERROR:关闭$caller失败' >&2;
   fi;
   exit;
 EOF
@@ -174,25 +152,41 @@ EOF
 
 get_nimbus
 get_supervisors
+get_drpcs
+
 cl_start() {
+  # 启动nimbus
   for i in $nimbus_seeds; do
     echo "[NIMUBS:$i]"
-    ssh -n root@$i $(nimbus_start_cmd $@)
+    ssh -n root@$i $(start_cmd 'nimbus' $@)
   done
+  # 启动supervisor
   for i in $supervisors_hosts; do
     echo "[SUPERVISOR:$i]"
-    ssh -n root@$i $(supervisor_start_cmd $@)
+    ssh -n root@$i $(start_cmd 'supervisor' $@)
+  done
+  # 启动drpc server
+  for i in $drpc_hosts; do
+    echo "[DRPC SVR:$i]"
+    ssh -n root@$i $(start_cmd 'drpc' $@)
   done
 }
 
 cl_stop() {
+  # 关闭nimbus
   for i in $nimbus_seeds; do
     echo "[NIMUBS:$i]"
-    ssh -n root@$i $(nimbus_stop_cmd)
+    ssh -n root@$i $(stop_cmd 'nimbus')
   done
+  # 关闭supervisor
   for i in $supervisors_hosts; do
     echo "[SUPERVISOR:$i]"
-    ssh -n root@$i $(supervisor_stop_cmd)
+    ssh -n root@$i $(stop_cmd 'supervisor')
+  done
+  # 关闭drpc server
+  for i in $drpc_hosts; do
+    echo "[DRPC SVR:$i]"
+    ssh -n root@$i $(stop_cmd 'drpc')
   done
 }
 
@@ -209,7 +203,7 @@ ui_start() {
       sleep 1
     done
     echo -e "\n启动storm UI成功"
-    echo "日志记录位置:$STORM_HOME/logs/ui.log"
+    echo "日志记录位置:$STORM_HOME/logs/ui.out,log"
   else
     echo 'ERROR 启动storm UI失败' >&2
     return 1
@@ -245,23 +239,23 @@ lv_start() {
     shift
     for i in $lv_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_start_cmd $@)
+      ssh -n root@$i $(start_cmd 'logviewer' $@)
     done
     ;;
   -s)
     (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || return 1
     lv_hosts=$(echo $2 | tr ',' ' ' | xargs)
     shift 2
-    for i in $supervisors_hosts; do
+    for i in $lv_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_start_cmd $@)
+      ssh -n root@$i $(start_cmd 'logviewer' $@)
     done
     ;;
   *)
     echo '[DEFAULT MODE: START LOGVIEWER ON ALL SUPERVISORS]'
     for i in $supervisors_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_start_cmd $@)
+      ssh -n root@$i $(start_cmd 'logviewer' $@)
     done
     ;;
   esac
@@ -276,7 +270,7 @@ lv_stop() {
     shift
     for i in $lv_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_stop_cmd)
+      ssh -n root@$i $(stop_cmd 'logviewer')
     done
     ;;
   -s)
@@ -285,14 +279,14 @@ lv_stop() {
     shift 2
     for i in $lv_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_stop_cmd)
+      ssh -n root@$i $(stop_cmd 'logviewer')
     done
     ;;
   *)
     echo '[DEFAULT MODE: STOP LOGVIEWER ON ALL SUPERVISORS]'
     for i in $supervisors_hosts; do
       echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(lv_stop_cmd)
+      ssh -n root@$i $(stop_cmd 'logviewer')
     done
     ;;
   esac

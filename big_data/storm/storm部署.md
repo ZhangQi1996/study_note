@@ -43,7 +43,7 @@ $ ./bin/storm jar examples/storm-starter/storm-starter-topologies-0.9.4.jar stor
     node2                 1            1
     node3                 1            1
     ```
-    * node1作为nimbus，
+    * 注：在storm1.x开始，storm开始支持nimbus的HA了，采用跟zk类似的选举机制，完成推选nimbus leader
 2. 开始配置
     ```
     $ vim conf/storm.yaml
@@ -54,7 +54,12 @@ $ ./bin/storm jar examples/storm-starter/storm-starter-topologies-0.9.4.jar stor
     
     storm.local.dir: "/var/storm"
     
-    nimbus.host: "node1"
+    # 在1.x版本支持HA，该配置depreciated
+    # nimbus.host: "node1"
+   
+    # 1.x版本对nimbus的HA支持
+    # 注意对于nimbus的HA仍需对每个nimbus单独启动 
+    nimbus.seeds: ["host1","host2"]
     
     supervisor.slots.ports:
         - 6700

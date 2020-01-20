@@ -23,3 +23,10 @@
     * https://hbase.apache.org/apidocs/index.html
 * hbase的默认配置
     * http://hbase.apache.org/book.html#hbase_default_configurations
+#### storm
+* storm官方文档
+    * http://storm.apache.org/releases/1.2.3/index.html
+* storm api
+    * http://storm.apache.org/releases/1.2.3/javadocs/index.html
+* storm drpc
+    * http://storm.apache.org/releases/1.2.3/Distributed-RPC.html 
