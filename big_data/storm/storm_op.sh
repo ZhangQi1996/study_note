@@ -100,10 +100,10 @@ start_cmd() {
   cat << EOF
   [[ -f /var/run/storm_$caller.pid ]] && echo '$caller已正在运行' >&2 && exit;
   [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
+  touch /var/lock/subsys/storm_$caller || (echo '/var/lock/subsys/storm_$caller已经被锁住，无法start' >&2 && exit 1);
   \$STORM_HOME/bin/storm $caller $@ >> \$STORM_HOME/logs/$caller.out & 2>&1;
   if [[ \$? == 0 ]]; then
     echo \$! > /var/run/storm_$caller.pid;
-    touch /var/lock/subsys/storm_$caller;
     for i in {1..$sec}; do
       echo -n '.';
       sleep 1;
@@ -111,6 +111,7 @@ start_cmd() {
     echo -e '\n启动$caller成功';
     echo '日志记录位置:'\$STORM_HOME/logs/$caller.out,log;
   else
+    rm -f /var/lock/subsys/storm_$caller;
     echo 'ERROR:启动$caller失败' >&2;
   fi;
   exit;

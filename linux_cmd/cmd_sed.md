@@ -1,4 +1,6 @@
 #### 用sed完成对文件的增删改查
+* **注意**
+    * \)  \(   \?   \+
 * sed遵循简单的工作流：
     * 读取（从输入中读取某一行）
     * 执行（在某一行上执行sed命令）
@@ -33,6 +35,9 @@
             # e.g.2
                 a=`echo 'helloworld20140501.txt'|sed 's/.*\([0-9]\{8\}\).*/\1/'`
                 这个命令作用也是一样，变量a被赋值为20140501
+            # e.g.3
+                 echo 'advertised.listeners=TEXT_-a://local:8080' | sed 's/\(\(advertised.\)\?listeners\s*=\s*[a-zA-Z_\-]\+:\/\/\)[a-zA-Z_\-]\+\(:[0-9]\+\)/\1master\3/'
+                就是替换local
             ```
         * d: 删除
             1. sed '2d' test.txt: 删除第 2 行

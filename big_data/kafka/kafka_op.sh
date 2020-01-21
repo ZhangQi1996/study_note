@@ -84,7 +84,7 @@ while (($# > 0)); do
       ssh -n root@$b "
       [[ ! -d \$KAFKA_HOME ]] && echo '未配置kafka的环境变量' >&2 && exit 1;
       [[ -d \$KAFKA_HOME/logs ]] || mkdir -p \$KAFKA_HOME/logs;
-      if \$KAFKA_HOME/bin/kafka-server-start.sh $daemon $svr_props >> \$KAFKA_HOME/logs/start.out 2>&1 && jps | grep 'Kafka' >/dev/null 2>&1; then
+      if \$KAFKA_HOME/bin/kafka-server-start.sh $daemon $svr_props >> \$KAFKA_HOME/logs/start.out 2>&1 && sleep 2 && jps | grep 'Kafka' >/dev/null 2>&1; then
         echo 'start successfully';
         exit 0;
       else

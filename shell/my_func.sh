@@ -20,6 +20,28 @@ cvt_nr2n() {
   return 0
 }
 
+# 判断pid文件存在并且进程是否在运行，若进程不在运行而pid文件在的话删除pid文件，若提供了lock文件则也会删除
+# proc_is_running a.pid a.lock
+proc_is_running() {
+  local pid_file=$1
+  local pid=
+  local lock_file=
+  [[ -n $2 && -f $2 ]] && lock_file=$2
+  if [[ -f $pid_file ]]; then
+    pid=$(xargs < $pid_file)
+    if [[ -e /proc/$pid ]]; then
+      return 0
+    else
+      rm -f $pid_file
+      [[ -z $lock_file ]] && rm -f $lock_file
+      return 1
+    fi
+  else
+    return 1
+  fi
+}
+
+
 
 
 

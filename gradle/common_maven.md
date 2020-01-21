@@ -48,3 +48,30 @@ compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.48'
 // https://mvnrepository.com/artifact/mysql/mysql-connector-java
 compile group: 'mysql', name: 'mysql-connector-java', version: '5.0.8'
 ```
+* storm
+```
+// https://mvnrepository.com/artifact/org.apache.storm/storm-core
+compile group: 'org.apache.storm', name: 'storm-core', version: '1.2.3'
+
+// https://mvnrepository.com/artifact/org.apache.storm/storm-kafka
+providedCompile group: 'org.apache.storm', name: 'storm-kafka', version: '1.2.3'
+
+// https://mvnrepository.com/artifact/org.apache.storm/storm-kafka-client
+providedCompile group: 'org.apache.storm', name: 'storm-kafka-client', version: '1.2.3'
+```
+* kafka
+```
+// https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.4.0'
+```
+* flume
+```
+// https://mvnrepository.com/artifact/org.apache.flume/flume-ng-core
+compile group: 'org.apache.flume', name: 'flume-ng-core', version: '1.9.0'
+
+// https://mvnrepository.com/artifact/org.apache.flume.flume-ng-sources/flume-kafka-source
+compile group: 'org.apache.flume.flume-ng-sources', name: 'flume-kafka-source', version: '1.9.0'
+
+// https://mvnrepository.com/artifact/org.apache.flume.flume-ng-sinks/flume-ng-kafka-sink
+compile group: 'org.apache.flume.flume-ng-sinks', name: 'flume-ng-kafka-sink', version: '1.9.0'
+```
