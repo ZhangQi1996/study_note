@@ -10,10 +10,11 @@ EOF
 
 usage
 
-if [[ -z $STORM_HOME ]]; then
-	echo '请配置环境变量STORM_HOME' >&2
-	exit 1
-fi
+. /etc/init.d/functions
+
+[[ -d $STORM_HOME ]] || action '请配置环境变量STORM_HOME' false || exit 1
+[[ -f $STORM_HOME/conf/supervisors ]] || action "$STORM_HOME/conf/supervisors文件不存在" false || exit 1
+
 
 # 全体参数的列表
 args=$@
@@ -42,23 +43,20 @@ function isExistInIgnoreHosts() {
 	return 0
 }
 
-SLAVES_FILE_PATH=$STORM_HOME/conf/supervisors
-
-# slaves文件中那些存在于ignore_hosts的主机忽略同步
-for slave in $(xargs < $SLAVES_FILE_PATH); do
-	isExistInIgnoreHosts $slave
+for supervisor in $(cat $STORM_HOME/conf/supervisors | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | xargs); do
+	isExistInIgnoreHosts $supervisor
 	if (($? == 1)); then
-		echo 已经忽略$slave的同步
+		echo 已经忽略$supervisor的同步
 		continue # 存在就忽略
 	fi
 	# 同步
 	for ((i = 0; i < ${#sync_arr[@]}; i++)); do
-		scp ${sync_arr[$i]} root@$slave:${target_arr[$i]} 2>/dev/null >&2
+		scp ${sync_arr[$i]} root@$supervisor:${target_arr[$i]} 2>/dev/null >&2
 		if (($? == 0)); then
-			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$slave:${target_arr[$i]}"
+			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$supervisor:${target_arr[$i]}"
 		else
-			echo "本主机${sync_arr[$i]}--->root@$slave:${target_arr[$i]}的同步异常!" >&2
-			echo "请检查本主机到root@$slave的防火墙设置以及ssh连接配置!" >&2
+			echo "本主机${sync_arr[$i]}--->root@$supervisor:${target_arr[$i]}的同步异常!" >&2
+			echo "请检查本主机到root@$supervisor的防火墙设置以及ssh连接配置!" >&2
 			exit 1 # 异常退出
 		fi
 	done

@@ -2,6 +2,7 @@
 * kafka是一个分布式的消息队列系统(Distributed Message Queue)
 #### 安装kafka
 1. 下载并解压到目标目录
+    * https://mirrors.huaweicloud.com/apache/kafka/1.1.1/kafka_2.12-1.1.1.tgz
 2. 配置环境变量
 3. 配置$KAFKA_HOME/config/server.properties文件
     1. 将所有作为kafka server的broker.id进行修改

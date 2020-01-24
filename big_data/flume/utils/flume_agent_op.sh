@@ -41,7 +41,7 @@ proc_is_running() {
       return 0
     else
       rm -f $pid_file
-      [[ -z $lock_file ]] && rm -f $lock_file
+      [[ -f $lock_file ]] && rm -f $lock_file
       return 1
     fi
   else

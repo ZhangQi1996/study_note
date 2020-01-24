@@ -87,7 +87,7 @@
     随着这个过程不停的进行，HBase表中的数据会被划分为若干个HRegion进行管理
 * Region Server下面有若干个HRegion，每个HRegion下面有若干的列族，每个列族对应着一个HStore
 #### 读写操作
-![](hbase_struct.png)
+![](imgs/hbase_struct.png)
 * 读操作
     1. cli与zk请求获得元数据服务的那个RS
     2. 访问存储着元数据服务的RS，获得数据表所在的那个RegionServer

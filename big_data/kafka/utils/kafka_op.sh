@@ -5,20 +5,22 @@ function usage {
 确保ssh无秘配置
 Usage: sh kafka_op.sh <-b broker_list [-n] [-f server.properties] start> | <-b broker_list stop>
 Tips: currently, this script do not supports overriding properties in starting kafka brokers.
+  [OPTS] -n: means that launch the program in fg mode, and daemon mode in default.
+  [OPTS] -f: indicates the path of server.properties.
 E.G.
 [START]
   1. sh kafka_op.sh -b 'host1,host2' start
     EQUALS EXEC
-    $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties start
+    $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server.properties
     IN host1 AND host2
   2. sh kafka_op.sh -b 'host1,host2' -n -f 'xxx/xxx.properties' start
     EQUALS EXEC
-    $KAFKA_HOME/bin/kafka-server-start.sh xxx/xxx.properties start
+    $KAFKA_HOME/bin/kafka-server-start.sh xxx/xxx.properties
     IN host1 AND host2
 [STOP]
   1. sh kafka_op.sh -b 'host1,host2' stop
     EQUALS EXEC
-    $KAFKA_HOME/bin/kafka-server-stop.sh stop
+    $KAFKA_HOME/bin/kafka-server-stop.sh
     IN host1 AND host2
 EOF
 }

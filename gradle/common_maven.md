@@ -61,8 +61,8 @@ providedCompile group: 'org.apache.storm', name: 'storm-kafka-client', version: 
 ```
 * kafka
 ```
-// https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
-compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.4.0'
+// https://mvnrepository.com/artifact/org.apache.kafka/kafka
+compile group: 'org.apache.kafka', name: 'kafka_2.12', version: '1.1.1'
 ```
 * flume
 ```

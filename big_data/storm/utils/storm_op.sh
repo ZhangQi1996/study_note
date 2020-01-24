@@ -3,22 +3,30 @@
 function usage {
   cat << EOF
 确保ssh无秘配置
-Usage: sh storm_op.sh <[cl]|ui|lv start|stop> [options]
+Usage: sh storm_op.sh <cl [--no-drpc] | ui [--ui-host=hostname] | lv [lv-options]> [--storm-opts=storm-opts] start|stop
 Tips: 1. it supports a launch happended at any machine, and just launchs
       according to the storm.yaml file and the supervisors file.
-      2. options mean that they will be provided for the corresponding cmd to exec.
+      2. lv-options include:
+        --supervisors=hosts_list
+        -s hosts_list
+      3. --storm-opts=<storm-opts> PS: this will be provided to storm exec program.
+      4. --no-drpc: see E.G.
+      5. --ui-host=hostname: see E.G.
 E.G.
 start/stop storm cluster:
   1. sh storm_op.sh cl start/stop
-  2. sh storm_op.sh start/stop
   PS: start/stop storm cluster including nimbus, supervisors and drpc servers
+  2. sh storm_op.sh cl start/stop [--no-drpc]
+  PS: start/stop storm without drpc servers if '--no-drpc' opt is provided.
 start/stop storm ui:
-  sh storm_op.sh ui start/stop
+  1. sh storm_op.sh ui start/stop
   PS: start/stop storm ui launched just on the machine executing this cmd.
+  2. sh storm_op.sh ui --ui-host=host1 start/stop
+  PS: start/stop storm ui on host1.
 start/stop storm log viewer
   1. sh storm_op.sh lv start/stop PS: means launching/shutdowning log viewer on every supervisor
-  2. sh storm_op.sh lv start/stop --supervisors="host1,host2" PS: means launching/shutdowning log viewer on host1 and host2
-  3. sh storm_op.sh lv start/stop -s "host1,host2" PS: means launching/shutdowning log viewer on host1 and host2
+  2. sh storm_op.sh lv --supervisors="host1,host2" start/stop PS: means launching/shutdowning log viewer on host1 and host2
+  3. sh storm_op.sh lv -s "host1,host2" start/stop PS: means launching/shutdowning log viewer on host1 and host2
 EOF
 }
 
@@ -29,6 +37,10 @@ EOF
 nimbus_seeds=
 supervisors_hosts=
 drpc_hosts=
+_no_drpc=false
+_lv_hosts=
+_ui_host='localhost'
+_storm_opts=
 
 get_nimbus() {
   [[ -f $STORM_HOME/conf/storm.yaml ]] || action '$STORM_HOME/conf/storm.yaml文件不存在' false || exit 1
@@ -81,6 +93,30 @@ get_drpcs() {
   [[ -n $drpc_hosts ]] || action '[ERROR]storm.yaml中没有配置drpc.servers项或该项值的配置不合法，请配置后再试...' false || exit 1
 }
 
+# 用于嵌套在ssh的cmd中
+_proc_is_running() {
+  cat << EOF
+proc_is_running() {
+  local pid_file=\$1;
+  local pid=;
+  local lock_file=;
+  [[ -f \$2 ]] && lock_file=\$2;
+  if [[ -f \$pid_file ]]; then
+    pid=\$(xargs < \$pid_file);
+    if [[ -e /proc/\$pid ]]; then
+      return 0;
+    else
+      rm -f \$pid_file;
+      [[ -f \$lock_file ]] && rm -f \$lock_file;
+      return 1;
+    fi;
+  else
+    return 1;
+  fi;
+};
+EOF
+}
+
 # 传递给ssh的cmd
 start_cmd() {
   local sec=
@@ -98,18 +134,18 @@ start_cmd() {
     ;;
   esac
   cat << EOF
-  [[ -f /var/run/storm_$caller.pid ]] && echo '$caller已正在运行' >&2 && exit;
-  [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
-  touch /var/lock/subsys/storm_$caller || (echo '/var/lock/subsys/storm_$caller已经被锁住，无法start' >&2 && exit 1);
+  $(_proc_is_running)
+  proc_is_running /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller && echo '$caller已正在运行' >&2 && exit 1;
+  ! touch /var/lock/subsys/storm_$caller && echo '/var/lock/subsys/storm_$caller已经被锁住，无法start' >&2 && exit 1;
   \$STORM_HOME/bin/storm $caller $@ >> \$STORM_HOME/logs/$caller.out & 2>&1;
-  if [[ \$? == 0 ]]; then
+  if [[ \$? == 0 ]] && sleep 1 && [[ -e /proc/\$! ]]; then
     echo \$! > /var/run/storm_$caller.pid;
     for i in {1..$sec}; do
       echo -n '.';
       sleep 1;
     done;
     echo -e '\n启动$caller成功';
-    echo '日志记录位置:'\$STORM_HOME/logs/$caller.out,log;
+    echo '启动日志记录位置:'\$STORM_HOME/logs/$caller.out;
   else
     rm -f /var/lock/subsys/storm_$caller;
     echo 'ERROR:启动$caller失败' >&2;
@@ -133,9 +169,8 @@ stop_cmd() {
     ;;
   esac
   cat << EOF
-  if ! [[ -f /var/run/storm_$caller.pid ]]; then
-    echo '$caller未在运行状态，关闭失败..' >&2 && exit;
-  fi;
+  $(_proc_is_running)
+  ! proc_is_running /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller && echo '$caller未在运行状态，关闭失败..' >&2 && exit 1;
   [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
   pid=\$(xargs < /var/run/storm_$caller.pid);
   if kill -QUIT \$pid >> \$STORM_HOME/logs/$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
@@ -158,210 +193,188 @@ get_drpcs
 cl_start() {
   # 启动nimbus
   for i in $nimbus_seeds; do
-    echo "[NIMUBS:$i]"
+    echo "[STORM NIMUBS:$i]"
     ssh -n root@$i $(start_cmd 'nimbus' $@)
   done
   # 启动supervisor
   for i in $supervisors_hosts; do
-    echo "[SUPERVISOR:$i]"
+    echo "[STORM SUPERVISOR:$i]"
     ssh -n root@$i $(start_cmd 'supervisor' $@)
   done
-  # 启动drpc server
-  for i in $drpc_hosts; do
-    echo "[DRPC SVR:$i]"
-    ssh -n root@$i $(start_cmd 'drpc' $@)
-  done
+  if ! $_no_drpc; then
+    # 启动drpc server
+    for i in $drpc_hosts; do
+      echo "[STORM DRPC SVR:$i]"
+      ssh -n root@$i $(start_cmd 'drpc' $@)
+    done
+  fi
 }
 
 cl_stop() {
   # 关闭nimbus
   for i in $nimbus_seeds; do
-    echo "[NIMUBS:$i]"
+    echo "[STORM NIMUBS:$i]"
     ssh -n root@$i $(stop_cmd 'nimbus')
   done
   # 关闭supervisor
   for i in $supervisors_hosts; do
-    echo "[SUPERVISOR:$i]"
+    echo "[STORM SUPERVISOR:$i]"
     ssh -n root@$i $(stop_cmd 'supervisor')
   done
-  # 关闭drpc server
-  for i in $drpc_hosts; do
-    echo "[DRPC SVR:$i]"
-    ssh -n root@$i $(stop_cmd 'drpc')
-  done
+  if ! $_no_drpc; then
+    # 关闭drpc server
+    for i in $drpc_hosts; do
+      echo "[STORM DRPC SVR:$i]"
+      ssh -n root@$i $(stop_cmd 'drpc')
+    done
+  fi
 }
 
 ui_start() {
-  echo "[STORM UI:$(hostname)]正在启动storm UI"
-  [[ -f /var/run/storm_ui.pid ]] && echo 'storm UI已正在运行' >&2 && return 1
-  [[ -d $STORM_HOME/logs ]] || mkdir -p $STORM_HOME/logs
-  $STORM_HOME/bin/storm ui $@ >> $STORM_HOME/logs/ui.out 2>&1 &
-  if [[ $? == 0 ]]; then
-    echo $! > /var/run/storm_ui.pid
-    touch /var/lock/subsys/storm_ui
-    for i in {1..10}; do
-      echo -n '.'
-      sleep 1
-    done
-    echo -e "\n启动storm UI成功"
-    echo "日志记录位置:$STORM_HOME/logs/ui.out,log"
-  else
-    echo 'ERROR 启动storm UI失败' >&2
-    return 1
-  fi
-  return 0
+  echo "[STORM UI:$_ui_host]"
+  ssh -n root@$_ui_host $(start_cmd 'ui' $_storm_opts)
 }
 
 ui_stop() {
-  echo "[$(hostname)]正在关闭storm UI"
-  if ! [[ -f /var/run/storm_ui.pid ]]; then
-    echo 'storm UI未在运行状态，关闭失败..' >&2 && return 1
-  fi
-  [[ -d $STORM_HOME/logs ]] || mkdir -p $STORM_HOME/logs
-  local pid=$(xargs < /var/run/storm_ui.pid)
-  if kill -QUIT $pid >> $STORM_HOME/logs/ui.out 2>&1 && sleep 1 && [[ ! -e /proc/$pid ]]; then
-    echo '已正常关闭storm UI'
-    rm -f /var/run/storm_ui.pid /var/lock/subsys/storm_ui
-  elif kill -9 $pid >> $STORM_HOME/logs/ui.out 2>&1 && sleep 1 && [[ ! -e /proc/$pid ]]; then
-    echo '已强制关闭storm UI'
-    rm -f /var/run/storm_ui.pid /var/lock/subsys/storm_ui
-  else
-    echo 'ERROR:关闭storm UI失败' >&2
-    return 1
-  fi
-  return 0
+  echo "[STORM UI:$_ui_host]"
+  ssh -n root@$_ui_host $(stop_cmd 'ui')
 }
 
 lv_start() {
-  local lv_hosts=
-  case $1 in
-  --supervisors=?*)
-    lv_hosts=$(echo $1 | sed 's/--supervisors=//' | sed "s/['\"]//g" | tr ',' ' ' | xargs)
-    shift
-    for i in $lv_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(start_cmd 'logviewer' $@)
-    done
-    ;;
-  -s)
-    (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || return 1
-    lv_hosts=$(echo $2 | tr ',' ' ' | xargs)
-    shift 2
-    for i in $lv_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(start_cmd 'logviewer' $@)
-    done
-    ;;
-  *)
+  if [[ -z $_lv_hosts ]]; then
     echo '[DEFAULT MODE: START LOGVIEWER ON ALL SUPERVISORS]'
-    for i in $supervisors_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(start_cmd 'logviewer' $@)
-    done
-    ;;
-  esac
-  return 0
+    _lv_hosts=$supervisors_hosts
+  fi
+  for i in $_lv_hosts; do
+    echo "[STORM LOGVIEWER:$i]"
+    ssh -n root@$i $(start_cmd 'logviewer' $_storm_opts)
+  done
 }
 
 lv_stop() {
-  local lv_hosts=
-  case $1 in
-  --supervisors=?*)
-    lv_hosts=$(echo $1 | sed 's/--supervisors=//' | sed "s/['\"]//g" | tr ',' ' ' | xargs)
-    shift
-    for i in $lv_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(stop_cmd 'logviewer')
-    done
-    ;;
-  -s)
-    (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || return 1
-    lv_hosts=$(echo $2 | tr ',' ' ' | xargs)
-    shift 2
-    for i in $lv_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(stop_cmd 'logviewer')
-    done
-    ;;
-  *)
+  if [[ -z $_lv_hosts ]]; then
     echo '[DEFAULT MODE: STOP LOGVIEWER ON ALL SUPERVISORS]'
-    for i in $supervisors_hosts; do
-      echo "[LOGVIEWER:$i]"
-      ssh -n root@$i $(stop_cmd 'logviewer')
-    done
-    ;;
-  esac
-  return 0
+    _lv_hosts=$supervisors_hosts
+  fi
+  for i in $_lv_hosts; do
+    echo "[STORM LOGVIEWER:$i]"
+    ssh -n root@$i $(stop_cmd 'logviewer')
+  done
 }
 
 RETVAL=0
+
 case $1 in
-start)
-  shift
-  cl_start $@
-  ;;
-stop)
-  cl_stop
-  ;;
 cl)
   (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || exit 1
-  case $2 in
-  start)
-    shift 2
-    cl_start $@
-    ;;
-  stop)
-    cl_stop
-    ;;
-  *)
-    usage
-    RETVAL=1
-    ;;
-  esac
+  shift
+  while true; do
+    case $1 in
+    --no-drpc)
+      _no_drpc=true
+      shift
+      ;;
+    --storm-opts=?*)
+      _storm_opts=$(echo $1 | sed 's/--storm-opts=//' | sed "s/['\"]//g")
+      shift
+      ;;
+    start)
+      cl_start
+      shift
+      break 2
+      ;;
+    stop)
+      cl_stop
+      shift
+      break 2
+      ;;
+    *)
+      usage
+      RETVAL=1
+      shift
+      break 2
+      ;;
+    esac
+  done
   ;;
 ui)
   (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || exit 1
-  case $2 in
-  start)
-    shift 2
-    ui_start $@
-    RETVAL=$?
-    ;;
-  stop)
-    ui_stop
-    RETVAL=$?
-    ;;
-  *)
-    usage
-    RETVAL=1
-    ;;
-  esac
+  shift
+  while true; do
+    case $1 in
+    --ui-host=?*)
+      _ui_host=$(echo $1 | sed 's/--ui-host=//' | sed "s/['\"]//g" | xargs)
+      shift
+      ;;
+    --storm-opts=?*)
+      _storm_opts=$(echo $1 | sed 's/--storm-opts=//' | sed "s/['\"]//g")
+      shift
+      ;;
+    start)
+      ui_start
+      shift
+      break 2
+      ;;
+    stop)
+      ui_stop
+      shift
+      break 2
+      ;;
+    *)
+      usage
+      RETVAL=1
+      shift
+      break 2
+      ;;
+    esac
+  done
   ;;
 lv)
   (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || exit 1
-  case $2 in
-  start)
-    shift 2
-    lv_start $@
-    RETVAL=$?
-    ;;
-  stop)
-    shift 2
-    lv_stop $@
-    RETVAL=$?
-    ;;
-  *)
-    usage
-    RETVAL=1
-    ;;
-  esac
+  shift
+  while true; do
+    case $1 in
+    --supervisors=?*)
+      _lv_hosts=$(echo $1 | sed 's/--supervisors=//' | sed "s/['\"]//g" | tr ',' ' ' | xargs)
+      shift
+      ;;
+    -s)
+      (( $# >= 2 )) || action 'args format error: plz see sh storm_op.sh help' false || exit 1
+      _lv_hosts=$(echo $2 | tr ',' ' ' | xargs)
+      shift 2
+      ;;
+    --storm-opts=?*)
+      _storm_opts=$(echo $1 | sed 's/--storm-opts=//' | sed "s/['\"]//g")
+      shift
+      ;;
+    start)
+      lv_start
+      shift
+      break 2
+      ;;
+    stop)
+      lv_stop
+      shift
+      break 2
+      ;;
+    *)
+      usage
+      RETVAL=1
+      shift
+      break 2
+      ;;
+    esac
+  done
   ;;
 help)
   usage
+  shift
   ;;
 *)
   usage
   RETVAL=1
+  shift
   ;;
 esac
+
 exit $RETVAL
