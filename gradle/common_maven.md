@@ -53,9 +53,6 @@ compile group: 'mysql', name: 'mysql-connector-java', version: '5.0.8'
 // https://mvnrepository.com/artifact/org.apache.storm/storm-core
 compile group: 'org.apache.storm', name: 'storm-core', version: '1.2.3'
 
-// https://mvnrepository.com/artifact/org.apache.storm/storm-kafka
-providedCompile group: 'org.apache.storm', name: 'storm-kafka', version: '1.2.3'
-
 // https://mvnrepository.com/artifact/org.apache.storm/storm-kafka-client
 providedCompile group: 'org.apache.storm', name: 'storm-kafka-client', version: '1.2.3'
 ```

@@ -13,6 +13,8 @@ supervisor.slots.ports:
   - 6701
   - 6702
   - 6703
+# 设置ui端口
+ui.port: 8080
 
 # 配置drpc svr
 # sh storm_op.sh [cl] start/stop脚本从drpc.servers配置项中读取需要启动的drpc svrs

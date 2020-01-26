@@ -134,10 +134,11 @@ start_cmd() {
     ;;
   esac
   cat << EOF
+  [[ ! -d \$STORM_HOME ]] && echo "\$STORM_HOME未配置或未安装storm" >&2 && exit 1;
   $(_proc_is_running)
   proc_is_running /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller && echo '$caller已正在运行' >&2 && exit 1;
   ! touch /var/lock/subsys/storm_$caller && echo '/var/lock/subsys/storm_$caller已经被锁住，无法start' >&2 && exit 1;
-  \$STORM_HOME/bin/storm $caller $@ >> \$STORM_HOME/logs/$caller.out & 2>&1;
+  \$STORM_HOME/bin/storm $caller $@ >> \$STORM_HOME/logs/start_$caller.out & 2>&1;
   if [[ \$? == 0 ]] && sleep 1 && [[ -e /proc/\$! ]]; then
     echo \$! > /var/run/storm_$caller.pid;
     for i in {1..$sec}; do
@@ -145,12 +146,13 @@ start_cmd() {
       sleep 1;
     done;
     echo -e '\n启动$caller成功';
-    echo '启动日志记录位置:'\$STORM_HOME/logs/$caller.out;
+    echo '启动日志记录位置:'\$STORM_HOME/logs/start_$caller.out;
   else
     rm -f /var/lock/subsys/storm_$caller;
     echo 'ERROR:启动$caller失败' >&2;
+    exit 1;
   fi;
-  exit;
+  exit 0;
 EOF
 }
 stop_cmd() {
@@ -169,20 +171,22 @@ stop_cmd() {
     ;;
   esac
   cat << EOF
+  [[ ! -d \$STORM_HOME ]] && echo "\$STORM_HOME未配置或未安装storm" >&2 && exit 1;
   $(_proc_is_running)
   ! proc_is_running /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller && echo '$caller未在运行状态，关闭失败..' >&2 && exit 1;
   [[ -d \$STORM_HOME/logs ]] || mkdir -p \$STORM_HOME/logs;
   pid=\$(xargs < /var/run/storm_$caller.pid);
-  if kill -QUIT \$pid >> \$STORM_HOME/logs/$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
+  if kill -QUIT \$pid >> \$STORM_HOME/logs/stop_$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
     echo '已正常关闭$caller';
     rm -f /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller;
-  elif kill -9 \$pid >> \$STORM_HOME/logs/$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
+  elif kill -9 \$pid >> \$STORM_HOME/logs/stop_$caller.out 2>&1 && sleep 1 && [[ ! -e /proc/\$pid ]]; then
     echo '已强制关闭$caller';
     rm -f /var/run/storm_$caller.pid /var/lock/subsys/storm_$caller;
   else
     echo 'ERROR:关闭$caller失败' >&2;
+    exit 1;
   fi;
-  exit;
+  exit 0;
 EOF
 }
 
@@ -194,18 +198,18 @@ cl_start() {
   # 启动nimbus
   for i in $nimbus_seeds; do
     echo "[STORM NIMUBS:$i]"
-    ssh -n root@$i $(start_cmd 'nimbus' $@)
+    ssh -n root@$i $(start_cmd 'nimbus' $_storm_opts)
   done
   # 启动supervisor
   for i in $supervisors_hosts; do
     echo "[STORM SUPERVISOR:$i]"
-    ssh -n root@$i $(start_cmd 'supervisor' $@)
+    ssh -n root@$i $(start_cmd 'supervisor' $_storm_opts)
   done
   if ! $_no_drpc; then
     # 启动drpc server
     for i in $drpc_hosts; do
       echo "[STORM DRPC SVR:$i]"
-      ssh -n root@$i $(start_cmd 'drpc' $@)
+      ssh -n root@$i $(start_cmd 'drpc' $_storm_opts)
     done
   fi
 }

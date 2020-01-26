@@ -3,7 +3,7 @@
 function usage {
   cat << EOF
 保证本节点到其他节点的ssh相关配置
-默认按照zoo.cfg中按照serer.x中先后顺序启动zk
+默认按照zoo.cfg中按照server.x中先后顺序启动zk
 Usage: bash zk_cluster.sh [start|stop|restart|status]
 EOF
 }

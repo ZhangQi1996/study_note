@@ -9,8 +9,8 @@ Tips:
   [OPT]-f svrs_file: the file lists all the hostname that will be synced, and notes will be ignored.
   [OPT]-e svrs_pair: just like 'hosts1,host2', kafka server on these hosts will be synced.
   [OPT]-b broker_id-begin-num: 0 in default
-  [OPT]-h it will set $(hostname) to (advertised.)?listeners in server.properties on target machine if -h is provided.
-      e.g.   (advertised.)?listeners=PROTO://$(hostname):PORT
+  [OPT]-h it will set \$(hostname) to (advertised.)?listeners in server.properties on target machine if -h is provided.
+      e.g.   (advertised.)?listeners=PROTO://\$(hostname):PORT
       else just be set by the host provided
   PS: the broker id will begin from zero and increase one by one in these host provided in order, and
       the content synced according to the content existing in the host executing this script.
