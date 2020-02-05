@@ -1,3 +1,5 @@
+# default.yaml sees
+# https://github.com/apache/storm/blob/v1.2.3/conf/defaults.yaml
 # 配置zk
 storm.zookeeper.servers:
   - "qc"
@@ -7,16 +9,22 @@ storm.local.dir: "/var/storm"
 # The worker nodes need to know which machines are the candidate of master in order to download topology jars and confs
 # sh storm_op.sh [cl] start/stop脚本从nimbus.seeds配置项中读取需要启动的nimbus
 nimbus.seeds: ["master"]
+nimbus.childopts: "-Xmx512m"
 # 配置从节点的工作端口
 supervisor.slots.ports:
   - 6700
   - 6701
   - 6702
   - 6703
+supervisor.childopts: "-Xmx256m"
+worker.heap.memory.mb: 384
 # 设置ui端口
 ui.port: 8080
+ui.childopts: "-Xmx256m"
 
 # 配置drpc svr
 # sh storm_op.sh [cl] start/stop脚本从drpc.servers配置项中读取需要启动的drpc svrs
 drpc.servers:
   - "master"
+drpc.childopts: "-Xmx256m"
+

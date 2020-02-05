@@ -4,12 +4,12 @@
 function usage() {
 	cat <<EOF
 保证本节点到其他节点的ssh相关配置
-Usage: bash sync_kafka_settings.sh <-f svrs_file | -e svrs_pair> [-b broker_id-begin-num] [-h]
+Usage: bash sync_kafka_settings.sh <-f svrs_file | -e svrs_pair> [-b broker_id-begin-num] [--hostname] [-h|--help]
 Tips:
   [OPT]-f svrs_file: the file lists all the hostname that will be synced, and notes will be ignored.
   [OPT]-e svrs_pair: just like 'hosts1,host2', kafka server on these hosts will be synced.
   [OPT]-b broker_id-begin-num: 0 in default
-  [OPT]-h it will set \$(hostname) to (advertised.)?listeners in server.properties on target machine if -h is provided.
+  [OPT]--hostname it will set \$(hostname) to (advertised.)?listeners in server.properties on target machine if --hostname is provided.
       e.g.   (advertised.)?listeners=PROTO://\$(hostname):PORT
       else just be set by the host provided
   PS: the broker id will begin from zero and increase one by one in these host provided in order, and
@@ -25,9 +25,6 @@ if [[ -z $KAFKA_HOME ]]; then
 	exit 1
 fi
 
-# 全体参数的列表
-args=$@
-
 # 需要同步的目录
 sync_arr=(
 	$KAFKA_HOME/config/server.properties
@@ -42,6 +39,7 @@ svrs=
 hostname='$(hostname)'
 _h=false
 broker_id=0
+RETVAL=0
 
 while (($# > 0)); do
   case $1 in
@@ -61,11 +59,11 @@ while (($# > 0)); do
     broker_id=$2
     shift 2
     ;;
-  -h)
+  --hostname)
     _h=true
     shift
     ;;
-  help)
+  -h|--help)
     usage
     exit 0
     ;;
@@ -92,22 +90,18 @@ for svr in $svrs; do
 	# 同步
 	for ((i=0; i<${#sync_arr[@]}; i++)); do
 	  $_h || hostname=$svr
-		scp ${sync_arr[$i]} root@$svr:${target_arr[$i]} >/dev/null && ssh -n root@$svr $(update_broker_id_and_host_cmd $broker_id)
-		if (($? == 0)); then
+		if scp ${sync_arr[$i]} root@$svr:${target_arr[$i]} >/dev/null && ssh -n root@$svr $(update_broker_id_and_host_cmd $broker_id); then
 			echo "已经完成同步:本主机${sync_arr[$i]}--->root@$svr:${target_arr[$i]}，且其server的broker_id=$broker_id"
 		else
 			echo "本主机${sync_arr[$i]}--->root@$svr:${target_arr[$i]}的同步异常!" >&2
 			echo "请检查本主机到root@$svr的防火墙设置以及ssh连接配置!" >&2
-			exit 1 # 异常退出
+			RETVAL=1
+			break 2
 		fi
 		((broker_id++))
 	done
 done
 
-if (($? == 0)); then
-  echo 同步完毕!
-  exit 0
-else
-  echo 同步失败! >&2
-  exit 1
-fi
+(($RETVAL == 0)) && echo 同步完毕! && exit 0
+echo 同步失败! >&2
+exit 1

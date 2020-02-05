@@ -16,7 +16,7 @@ E.G.
 start/stop storm cluster:
   1. sh storm_op.sh cl start/stop
   PS: start/stop storm cluster including nimbus, supervisors and drpc servers
-  2. sh storm_op.sh cl start/stop [--no-drpc]
+  2. sh storm_op.sh cl [--no-drpc] start/stop
   PS: start/stop storm without drpc servers if '--no-drpc' opt is provided.
 start/stop storm ui:
   1. sh storm_op.sh ui start/stop

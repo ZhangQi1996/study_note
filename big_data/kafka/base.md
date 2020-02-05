@@ -51,5 +51,57 @@
             1. --bootstrap-server svr: 指定连接的server，建议给定多个svr
             2. --group group-id: 指定创建的消费者所属的消费组id
     ![](imgs/kafka_old_new.png) 
-                  
-        
+* 清除kafka
+    1. stop
+    2. 删除所有kafka brokers主机上的/tmp/kafka-logs下的文件
+    3. 删除zk
+        ```
+        deleteall /controller_epoch 
+        deleteall /controller 
+        deleteall /brokers 
+        deleteall /admin
+        deleteall /config
+        deleteall /consumers
+        deleteall /controller_epoch
+        deleteall /latest_producer_id_block
+        deleteall /log_dir_event_notification
+        deleteall /isr_change_notification    
+        ```
+* 设置storm的ack机制
+    * Storm中有个特殊的task名叫acker，他们负责跟踪spout发出的每一个Tuple的Tuple树（由spout到若干个bolt形成tuple树），同时启动一个计时器。
+    ```
+    // 注: 设置计时器的时间限制
+    config.setMessageTimeoutSecs(secs) // 默认30s
+    ```
+    * spout的两个方法:
+        1. ack：用于处理当本spout产生的tuple树处理完毕后，做的结束操作。（通常是将本spout之前产生的tuple缓存在队列中去掉）
+        2. fail: 即当spout启动的计时器超时之前没有用收到acker的ack或者受到acker的fail，就触发spout的fail方法。（通常的做法就是进行重发）
+    * 当acker（框架自启动的task）发现一个Tuple树已经处理完成了，它会发送一个消息给产生这个Tuple的那个spout从而从而触发spout的ack方法。
+    * acker算法基本思想:
+    	1. acker对于每个spout产生的tuple都保存一个ack-val的校验值，它的初始值是0
+    	2. 然后每(spout/bolt)发射一个Tuple或Ack一个Tuple时，这个Tuple的msgId就要跟这个校验值异或一下，并且把得到的值更新为ack-val的新值
+    	3. 假设每个发射出去的Tuple都被ack了，那么最后ack-val的值就一定是0。Acker就根据ack-val是否为0来判断是否完全处理，如果为0则认为已完全处理。
+    * 要实现ack机制：
+        1. spout发射tuple的时候指定messageId
+        2. spout要重写BaseRichSpout的fail和ack方法
+        3. spout对发射的tuple进行缓存(否则spout的fail方法收到acker发来的messsageId，spout也无法获取到发送失败的数据进行重发)，看看系统提供的接口，
+            只有msgId这个参数，这里的设计不合理，其实在系统里是有cache整个msg的，只给用户一个messageid，用户如何取得原来的msg貌似需要自己cache，然后用这个msgId去查询，太坑爹了
+        3. spout根据messageId对于ack的tuple则从缓存队列中删除，对于fail的tuple可以选择重发。
+        4. 设置acker数至少大于0；config.setNumAckers(ackerParal);
+    * 编写bolt的注意项
+    　　* BasicBolt（无需锚定以及ack）
+    		* BasicOutputCollector在emit数据的时候，会自动和输入的tuple相关联(就是锚定)，而在execute方法结束的时候那个输入tuple会被自动ack。
+    　　* RichBolt（需锚定以及ack）
+    	    * 需要在emit数据的时候，显示指定该数据的源tuple要加上第二个参数anchor tuple，以保持tracker链路，即collector.emit(oldTuple, newTuple);
+    	        并且需要在execute执行成功后调用OutputCollector.ack(tuple), 当失败处理时，执行OutputCollector.fail(tuple);
+                由一个tuple产生一个新的tuple称为：anchoring，你发射一个tuple的同时也就完成了一次anchoring。	
+    ![](imgs/storm_ack.png)
+* storm的事务
+    * design 1
+    ![](imgs/storm_tx_1.png)
+    * design 2
+    ![](imgs/storm_tx_2.png)
+        * 缺点：只有处理本轮batch完毕时，其他batch才能开始处理，为了保证一致性（比如先后顺序）
+    * design 3
+        * 分为processing与committing两个部分
+        * processing可以流水处理，committing负责一致性

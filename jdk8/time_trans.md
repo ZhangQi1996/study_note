@@ -13,6 +13,8 @@
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     Date date = new Date();
     String dateStr = sdf.format(date);
+    // 获取当前时间
+    long curtime = System.currentTimeMillis();
     ```
 * 获取系统当前时间的前一天
     ```

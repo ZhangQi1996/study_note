@@ -15,7 +15,8 @@
     * -Xmx:最大堆大小
     * -Xmn:新生代大小
     * -XX:NewRatio:设置新生代和老年代的比值。如：为3，表示年轻代与老年代比值为1：3
-    * -XX:SurvivorRatio:新生代中Eden区与两个Survivor区的比值。注意Survivor区有两个。如：为3，表示Eden：Survivor=3：2，一个Survivor区占整个新生代的1/5  
+    * -XX:SurvivorRatio:新生代中Eden区与两个Survivor区的比值。注意Survivor区有两个。如：为3（就是eden与其中一个比值为3:1），表示Eden：Survivor=3：2，一个Survivor区占整个新生代的1/5  
+        * -XX:SurvivorRatio=8
     * -XX:MaxTenuringThreshold:设置转入老年代的存活次数。如果是0，则直接跳过新生代进入老年代
     * -XX:PermSize、-XX:MaxPermSize:分别设置永久代最小大小与最大大小（Java8以前）
     * -XX:MetaspaceSize、-XX:MaxMetaspaceSize:分别设置元空间最小大小与最大大小（Java8以后）
@@ -29,6 +30,7 @@
     * -XX:+PrintGCDetails
     * -XX:+PrintGCTimeStamps
     * -Xloggc:filename
+    * -verbose:gc 打印gc的冗余信息
 * 并行收集器设置
     * -XX:ParallelGCThreads=n:设置并行收集器收集时使用的CPU数。并行收集线程数。
     * -XX:MaxGCPauseMillis=n:设置并行收集最大暂停时间
@@ -36,6 +38,31 @@
 * 并发收集器设置
     * -XX:+CMSIncrementalMode:设置为增量模式。适用于单CPU情况。
     * -XX:ParallelGCThreads=n:设置并发收集器新生代收集方式为并行收集时，使用的CPU数。并行收集线程数。
-
+* 其他
+    * -XX:+PrintCommandLineFlags    打印jvm的启动参数  
+    ```
+    // 比如默认参数打印如下
+    -XX:InitialHeapSize=131900928 -XX:MaxHeapSize=2110414848 -XX:+PrintCommandLineFlags 
+    -XX:+UseCompressedClassPointers -XX:+UseCompressedOops 
+    -XX:-UseLargePagesIndividualAllocation -XX:+UseParallelGC
+    // *****************************************************************
+    1. -XX:+UseCompressedClassPointers 对指针进行压缩，从而节省空间
+    2. -XX:+UseCompressedOops 用于处理32bit到64bit系统的指针膨胀问题，对指针进行压缩
+    3. -XX:-UseLargePagesIndividualAllocation   暂未查到
+    4. -XX:+UseParallelGC 指定对于在新生代/老年代采用并行gc
+    ``` 
+    * -XX:PretenureSizeThreshold=xxx (字节) 设置直接放入老年代中的对象大小阈值
+        1. 需要设置收集器为串行收集器(在新生代/老年代)
+          * -XX:+UseSerialGC
+        2. 设置阈值
+              * -XX:PretenureSizeThreshold=xxx (字节)
+    * -XX:MaxTenuringThreshold=n   
+        * 设置在新生代中那些能晋升到老年代对象的年龄
+        * 年龄：就是存活在新生代中，经历了的gc次数+1（即默认年龄是1）
+        * 当年龄大于n时就100%晋升为老年代
+        * 注: jvm可以自动调节晋升的年龄，不一定要超过n才晋升，但是超过n必定晋升
+        * 该参数默认是15，CMS收集器默认是6，G1收集器默认是15，（由于jvm中用4bit标识，故最大为15）
+    * -XX:+PrintTenuringDistribution 打印年龄对象的情况
+    
 
 
