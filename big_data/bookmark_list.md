@@ -32,3 +32,8 @@
     * http://storm.apache.org/releases/1.2.3/Distributed-RPC.html 
 * storm default.yaml
     * https://github.com/apache/storm/blob/v1.2.3/conf/defaults.yaml
+#### spark
+* spark 文档
+    * http://spark.apache.org/docs/latest/
+* spark conf
+    * http://spark.apache.org/docs/latest/configuration.html

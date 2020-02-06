@@ -39,6 +39,7 @@
     * 给对象添加一个引用计数器，当有一个地方引用他的时候，计数器就+1，当引用失效，计数器就-1.任何时刻计数器值为0的对象
         就代表着这个对象不再使用。
     * 缺点：引用计数算法无法解决对象循环引用的问题
+    
     ![](../imgs/gc_ref_counting.png)
 2. 根搜索算法（root tracing）
     * 在实际的生产语言中（java, c sharp等），都是使用根搜索算法来判定对象是否存活的。
@@ -50,6 +51,7 @@
             3. JNI(java native interface)中的引用
             * 即指的是以上三种情况对对象的引用（比如对于引用计数的那种图来说，因为AB对象都是在heap中的互相引用
                 ，并没有gc roots对其存在引用，故可被回收）
+                
     ![](../imgs/gc_root_tracing.png) 
 #### jvm常见的在判活的基础上的gc算法
 1. 标记-清除算法（mark-sweep）
@@ -63,6 +65,7 @@
 2. 标记-整理/压缩算法（mark-compact）
     * 过程是，先标记，然后将所有存活的对象移动到内存的一端，然后将另一端全部清空。
     * 没有碎片，比mark-sweep花费更多的时间进行compact
+    
     ![](../imgs/gc_mark_compact.png)
 3. 复制算法（copying）
     * 将内存划分为两块，每次只使用其中一块。当半区内存使用完了，仅将其中还存活的对象复制到另一半内存中个，
@@ -77,23 +80,29 @@
                 一次性复制到另一块survivor中，然后清理掉原来的eden与survivor空间。
             2. oracle hotspot vm默认使用过的eden与survivor之比是8:1,即只有10%的内存空间是浪费的
         * 可以看到，当对象存活率高的时候，效率有所下降。由于老年代中，存活率较高，故不采用复制算法。
+        
     ![](../imgs/gc_copying.png)        
 4. 分代算法（generational collecting）
     * 当前商业虚拟机的垃圾收集都是采用“分代收集”算法，根据对象的不同存活周期将内存划分成几块
     * 一般将java heap分为新生代和老年代，这样就可以根据各个代别的特定采用最适当的收集算法，譬如新生代
         每次gc都只会有少量的对象存活，那么就在新生代采用改进的复制算法。而在老年代区域则采用标记-清除或者
         标记-压缩算法。
+        
     ![](../imgs/gc_generational_collecting.png)
     * 在hotspot jvm 6中分为：年轻代（young generation），老年代（old generation），
         永久代（permanent generation）（在jdk1.8开始没有了老年代，换之为元空间）
     * 各个代别之间的转换
+    
         ![](../imgs/gc_generation.png)
         1. 在eden space与from space中的经过一轮gc后存活的对象放置到to space，清空原来的eden与from space
         2. 此时在新的一轮中原来的to space变成来from space，原来的额from space变成了to space，这就是为什么要有两个
             survivor space的原因
         3. 在多轮均存活的对象将会放置到老年代
         4. 而永久代只是方法区的物理实现（jdk1.8之前）
+        
         ![](../imgs/gc_young_generation.png)
+        
         ![](../imgs/gc_old_generation.png)
+        
         ![](../imgs/gc_perm_generation.png)
                     

@@ -72,3 +72,13 @@ compile group: 'org.apache.flume.flume-ng-sources', name: 'flume-kafka-source', 
 // https://mvnrepository.com/artifact/org.apache.flume.flume-ng-sinks/flume-ng-kafka-sink
 compile group: 'org.apache.flume.flume-ng-sinks', name: 'flume-ng-kafka-sink', version: '1.9.0'
 ```
+* scala
+```
+// https://mvnrepository.com/artifact/org.scala-lang/scala-library
+compile group: 'org.scala-lang', name: 'scala-library', version: '2.12.10'
+```
+* spark
+```
+// https://mvnrepository.com/artifact/org.apache.spark/spark-core
+compile group: 'org.apache.spark', name: 'spark-core_2.12', version: '2.4.4'
+```

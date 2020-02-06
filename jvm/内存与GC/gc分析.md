@@ -66,6 +66,7 @@
       class space    used 342K, capacity 388K, committed 512K, reserved 1048576K
     ```
     * 分析
+    
         ![](../imgs/gc_analysis0.png)
         * minor gc：将新生代的存活进行gc，这个过程可能会将部分存活复制到老年代中（当新生代的内存有限时）
         * PSYoungGen      total 9216K, used 4123K

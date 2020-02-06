@@ -61,8 +61,10 @@
         * 年龄：就是存活在新生代中，经历了的gc次数+1（即默认年龄是1）
         * 当年龄大于n时就100%晋升为老年代
         * 注: jvm可以自动调节晋升的年龄，不一定要超过n才晋升，但是超过n必定晋升
+            * 与-XX:TargetSurvivorRatio=n有关
         * 该参数默认是15，CMS收集器默认是6，G1收集器默认是15，（由于jvm中用4bit标识，故最大为15）
     * -XX:+PrintTenuringDistribution 打印年龄对象的情况
-    
+    * -XX:TargetSurvivorRatio=n 表明当to space中存活的空间达到其60%的时候，就会重新计算潜在的
+        MaxTenuringThreshold这个值。
 
 

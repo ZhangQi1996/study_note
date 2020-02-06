@@ -31,6 +31,7 @@
             3. system.gc()
         * 效率很低，尽量减少full gc
 #### gc的选择
+
 ![](../imgs/gc_select.png)
 #### gc的并行与并发
 * **在gc中并行与并发只是在鉴别gc线程与用户线程之间的关系**
@@ -49,14 +50,19 @@
     * 在新生代，采用复制算法，在老年代采用的是mark-compact算法
     * 由于是单线程gc，没有多线程切换的额外开销，简单实用
     * hotspot cli模式默认的收集器
+    
     ![](../imgs/gc_serial-gc.png)
 2. parallel new收集器 (Par: parallel)
+
 ![](../imgs/gc_par-new-gc.png)
 3. parallel scavenge收集器
+
 ![](../imgs/gc_par-scavenge-gc.png)
 4. serial old收集器
+
 ![](../imgs/gc_serial-old-gc.png)
 5. parallel old收集器
+
 ![](../imgs/gc_par-old-gc.png)
 6. CMS(concurrent mark sweep)收集器
     * 是一种以最短停顿为目标的收集算法，使用cms并不能达到gc效率最高（即吞吐量最高，总体gc时间最短），
@@ -69,8 +75,10 @@
     * 多cpu/单cpu多核心才有意义
     * 使用-XX:+UseConcMarkSweepGC打开
     * 缺点(意味着)
+    
     ![](../imgs/gc_cms_shortcomings.png)
 #### gc的jvm参数
+
 ![](../imgs/gc_jvm_params.png)
 * 当在新生代分配的对象放不下时，会试图放置在老年代中
 * 每一次在新生代回收，from space存活的会复制到to space，新的一轮to->from, 在来回多轮中
