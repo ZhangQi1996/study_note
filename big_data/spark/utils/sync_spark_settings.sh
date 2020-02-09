@@ -3,40 +3,33 @@
 function usage() {
 	cat <<EOF
 保证本节点到其他节点的ssh相关配置
-Usage: bash sync_hadoop_settings.sh [-i ignore_hosts] [-e sync_hosts] [-h|--help]
+Usage: bash sync_hbase_settings.sh [-i ignore_hosts] [-e sync_hosts] [-h|--help]
 Tips: ignore_hosts will not be synced
+sync_hosts are defined in \$SPARK_HOME/conf/slaves file in default, if -e opt is not provided.
 EOF
 }
 
 . /etc/init.d/functions
 
-[[ -d $HADOOP_HOME ]] || action '请配置环境变量HADOOP_HOME' false || exit 1
-[[ -f $HADOOP_HOME/etc/hadoop/slaves ]] || action "$HADOOP_HOME/etc/hadoop/slaves文件不存在" false || exit 1
+[[ -d $SPARK_HOME ]] || action '请配置环境变量SPARK_HOME' false || exit 1
+[[ -f $SPARK_HOME/conf/slaves ]] || action "$SPARK_HOME/conf/slaves文件不存在" false || exit 1
 
 RETVAL=0
 ignore_hosts=
-sync_hosts=$(cat $HADOOP_HOME/etc/hadoop/slaves | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | xargs)
+sync_hosts=$(cat $SPARK_HOME/conf/slaves | grep -Ev '^\s*#|^\s*$' | sed 's/#.*//' | xargs)
 
 # 需要同步的目录
 sync_arr=(
-	$HADOOP_HOME/etc/hadoop/core-site.xml
-	$HADOOP_HOME/etc/hadoop/hdfs-site.xml
-	$HADOOP_HOME/etc/hadoop/yarn-site.xml
-	$HADOOP_HOME/etc/hadoop/hadoop-env.sh
-	$HADOOP_HOME/etc/hadoop/mapred-env.sh
-	$HADOOP_HOME/etc/hadoop/yarn-env.sh
-	$HADOOP_HOME/etc/hadoop/slaves
+  $SPARK_HOME/conf/spark-env.sh
+  $SPARK_HOME/conf/spark-defaults.conf
+	$SPARK_HOME/conf/slaves
 )
 
 # 同步到目标主机的路径，当目标主机的路径不一致时，需要修改
 target_arr=(
-	$HADOOP_HOME/etc/hadoop/core-site.xml
-	$HADOOP_HOME/etc/hadoop/hdfs-site.xml
-	$HADOOP_HOME/etc/hadoop/yarn-site.xml
-	$HADOOP_HOME/etc/hadoop/hadoop-env.sh
-	$HADOOP_HOME/etc/hadoop/mapred-env.sh
-	$HADOOP_HOME/etc/hadoop/yarn-env.sh
-	$HADOOP_HOME/etc/hadoop/slaves
+  $SPARK_HOME/conf/spark-env.sh
+  $SPARK_HOME/conf/spark-defaults.conf
+	$SPARK_HOME/conf/slaves
 )
 
 function isExistInIgnoreHosts() {

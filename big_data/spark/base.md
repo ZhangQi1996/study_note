@@ -14,6 +14,8 @@
         1. rdd之间的有依赖关系
         2. rdd的partition可多可少
 * spark运行模式
+    
+    ![](imgs/spark_run.png)
     1. local
         * 用于本地测试，基于ide
     2. standalone
