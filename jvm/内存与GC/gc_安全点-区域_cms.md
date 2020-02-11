@@ -45,6 +45,7 @@
     * 整个过程
         
         ![](../imgs/gc_cms_procedure.png)
+        ![](imgs/gc_cms-status.png)
 * 优点
     * 并发收集，低停顿。又称为并发低停顿收集器
 * 缺点

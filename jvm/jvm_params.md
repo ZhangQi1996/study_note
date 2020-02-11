@@ -25,7 +25,8 @@
     * -XX:+UseSerialGC:设置串行收集器
     * -XX:+UseParallelGC:设置并行收集器
     * -XX:+UseParalledlOldGC:设置并行老年代收集器
-    * -XX:+UseConcMarkSweepGC:设置并发收集器，不推荐使用（过于复杂）
+    * -XX:+UseConcMarkSweepGC:设置并发低停顿收集器，不推荐使用（过于复杂）
+    * -XX:+UseG1GC: 设置g1垃圾收集器
 * 垃圾回收统计信息
     * -XX:+PrintGC
     * -XX:+PrintGCDetails
@@ -33,12 +34,12 @@
     * -Xloggc:filename
     * -verbose:gc 打印gc的冗余信息
 * 并行收集器设置
-    * -XX:ParallelGCThreads=n:设置并行收集器收集时使用的CPU数。并行收集线程数。
-    * -XX:MaxGCPauseMillis=n:设置并行收集最大暂停时间
+    * -XX:ParallelGCThreads=n:设置并行收集器收集时使用的CPU数。并行收集线程数。（STW阶段的收集）
+    * -XX:MaxGCPauseMillis=n:设置并行收集目标最大暂停时间
     * -XX:GCTimeRatio=n:设置垃圾回收时间占程序运行时间的百分比。公式为1/(1+n)
 * 并发收集器设置
+    * -XX:ConcGCThreads=n: 设置处在并发标记阶段，并行执行gc的线程数（每个线程单独处理各自的所属部分）
     * -XX:+CMSIncrementalMode:设置为增量模式。适用于单CPU情况。
-    * -XX:ParallelGCThreads=n:设置并发收集器新生代收集方式为并行收集时，使用的CPU数。并行收集线程数。
 * 其他
     * -XX:+PrintCommandLineFlags    打印jvm的启动参数  
     ```

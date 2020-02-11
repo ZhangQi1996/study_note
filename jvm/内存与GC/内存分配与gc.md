@@ -12,11 +12,94 @@
         2. Soft 软引用
         3. Weak 弱引用
         4. Phantom 虚引用  // phantom n.幻觉，幻象
-        * 以上三种都是继承引用
 * full gc时候会对ref类型的引用进行特殊的处理
-    1. soft：内存不够时一定会被gc么长时间不用也会gc
-    2. weak：一定会被gc，当被mark为dead时，会在ref queue中通知
-    3. phantom：本来就没引用，当从jvm heap中释放是被通知
+    1. soft：系统将要发生内存溢出异常之前(就算在full gc后还是不够用)被软引用对象引用的对象只要没有被强引用一定会被回收
+        * java.lang.ref.SoftReference 软引用的类
+        ```
+        public class Main {
+            public static void main(String[] args) {
+                // 创建软引用对象 
+                // 软引用对象引用String对象，而String对象没有被强引用，故在所有内存不够时会被回收
+                SoftReference<String> sr = new SoftReference<String>(new String("hello"));
+                System.out.println(sr.get());
+            }
+        }
+        ```
+        * 也可以传给该引用一个ref queue，当本引用实例引用的对象被回收后，就会将本引用对象放置到ref queue队尾，
+            我们可以通过对ref queue的询问，查看哪些对象被回收了
+        ```
+        ReferenceQueue queue = new ReferenceQueue();
+        SoftReference ref = new SoftReference(new TargetObject(), queue);
+        // 特定实际判定回收
+        Reference ref = null;
+        // public Reference poll()：从队列中取出一个元素，队列为空则返回null
+        // public Reference remove()：从队列中出对一个元素，若没有则阻塞至有可出队元素
+        while ((ref = q.poll()) != null) {
+            // 判定回收的对象
+            // 以及清除ref对象
+            // ...
+        } 
+        ```
+        * 用途：这些对象很重要但不是必不可少的，只在full gc还不够用才回收其ref的对象实例（前提，对象没有被其他强引用），
+            所以说若是一般gc回收时不会回收这些对象的（只是最多就复制晋升到老年代）
+            故，一般情况下多用weak ref
+            ```
+            public static void main(String[] args) throws IOException {
+                // -Xmx20m -Xms20m -Xmn10m -XX:SurvivorRatio=8
+                // 20m空间可用空间空19m
+                Map<String, Reference> map = new HashMap<>();
+                map.put("1", new SoftReference<>(new byte[1024 * 1024 * 4]));
+                map.put("2", new SoftReference<>(new byte[1024 * 1024 * 4]));
+                map.put("3", new SoftReference<>(new byte[1024 * 1024 * 4]));
+                map.put("4", new SoftReference<>(new byte[1024 * 1024 * 4]));
+                for (String k: map.keySet()) {
+                    System.out.println(map.get(k).get());
+                }
+            }
+            // 打印
+            [GC (Allocation Failure) --[PSYoungGen: 4915K->4915K(9216K)] 13107K->13115K(19456K), 0.0014083 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+            [Full GC (Ergonomics) [PSYoungGen: 4915K->4613K(9216K)] [ParOldGen: 8200K->8193K(10240K)] 13115K->12806K(19456K), [Metaspace: 2622K->2622K(1056768K)], 0.0058940 secs] [Times: user=0.05 sys=0.00, real=0.01 secs] 
+            [GC (Allocation Failure) --[PSYoungGen: 4613K->4613K(9216K)] 12806K->12806K(19456K), 0.0015555 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+            [Full GC (Allocation Failure) [PSYoungGen: 4613K->0K(9216K)] [ParOldGen: 8193K->506K(10240K)] 12806K->506K(19456K), [Metaspace: 2622K->2622K(1056768K)], 0.0041766 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+            null
+            null
+            null
+            [B@15db9742
+            ```
+        
+    2. weak：在gc时被回收，当被mark为dead时（即被回收时），会在ref queue中通知（WeakRef实例会被放到队尾）
+        * 操作及用途与soft ref类似
+        * 用处
+            1. 用来实现简但规则的缓存机制
+            2. 常常用与map中，map.get(key) => Ref实例
+                * 返回的Ref实例装着目标实例，Ref实例.get() => 目标实例对象/null，null表示其已经被回收了
+                ```
+                public class Demo {
+                    public static void main(String[] args) throws IOException {
+                        // -Xmx20m -Xms20m -Xmn10m -XX:SurvivorRatio=8
+                        Map<String, Reference> map = new HashMap<>();
+                        map.put("1", new WeakReference<>(new byte[1024 * 1024 * 2]));
+                        map.put("2", new WeakReference<>(new byte[1024 * 1024 * 2]));
+                        map.put("3", new WeakReference<>(new byte[1024 * 1024 * 2]));
+                        map.put("4", new WeakReference<>(new byte[1024 * 1024 * 2]));
+                        for (String k: map.keySet()) {
+                            System.out.println(map.get(k).get());
+                        }
+                    }
+                }
+                // 打印结果
+                [GC (Allocation Failure) [PSYoungGen: 6963K->648K(9216K)] 6963K->656K(19456K), 0.0011342 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+                null
+                null
+                null
+                [B@15db9742
+                // 分析
+                由于在用了
+                ```
+    3. phantom 虚引用和没有任何引用一样，任何时候都可能被回收
+        * 作用：为一个对象设置虚引用关联的唯一目的就是**能在这个对象被收集器回收时收到一个系统通知，用于跟踪对象的回收状态**。
+            比如给其绑定一个ref queue，当虚引用所引用的对象释放了，就会将这个虚引用追加到ref que队尾。
+        
 #### gc的时机
 * 在分代模型的基础上，gc从时机上分为2种
     * 不同的时机触发不同的gc
