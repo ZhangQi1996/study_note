@@ -94,7 +94,18 @@ str3='C语言中文网'
     * echo $'a\tb'  # 只能用单引号
         * 可以在赋值中使用
         * a=$'a\tb'
-* s=${var:-xxx}表示
-    * 如果$var存在且不为空，s就是$var
-    * 如果$var不存在或为空，那么s就是xxx
+* 字符串为空或未设置的的处理
+    * s=${var:-xxx}表示
+        * 如果$var存在且不为空，s就是$var
+        * 如果$var不存在或为空，那么s就是xxx
+    * ${var:=word}	如果var为空或者未设定，返回word，且var=word
+    * ${var:+word}	如果var有值，返回word，var不变
+    * ${var:?word}	如果变量var为空或者未设定，返回word并退出shell，word没有值则输出：
+        parameter null or not set，用于检测var是否被正常赋值
+    * ${var-word}	如果var未设定，返回word，如果var为空或者有值，返回var
+* 字符串的替换
+    * 仅支持通配符模式
+    * ${var/word1/word2}	将var中第一个匹配到的word1替换为word2
+    * ${var//word1/word2}	将var中所有word1替换为word2
+
             

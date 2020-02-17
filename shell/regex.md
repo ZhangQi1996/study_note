@@ -1,5 +1,6 @@
 ##### shell中的正则
 * 参见**https://www.jb51.net/tools/shell_regex.html**
+* shell[]匹配中的正则为基本正则
 * 注意：在匹配\t这些符号时候需要使用
     * [[ $str =~ $'\t' ]]
     * [[ $str =~ [$'\t'$'\n'] ]]
