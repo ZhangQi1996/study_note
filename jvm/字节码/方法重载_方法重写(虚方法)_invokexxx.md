@@ -14,6 +14,24 @@
 #### invokexxx
 * invokeinterface
     * 调用接口中的方法，实际上是在运行期上决定的，决定调用实现该接口的那个对象的特定方法
+    ```java
+    interface A {
+        void func();
+    }
+    public class Demo implements A {
+    
+        public static void main(String[] args) {
+            A a = new Demo();
+            a.func(); // invokeinterface
+            new Demo().func(); // invokevirtual
+        }
+    
+        @Override
+        public void func() {
+            
+        }
+    }
+    ```
 * invokestatic
     * 调用静态方法
 * invokespecial
@@ -25,7 +43,7 @@
 #### 方法的重载-方法的静态分派
 * 方法重载（overload）是一种**静态**的行为，编译期就可以完全确定，是**编译期行为**
 * 重载的方法接受的参数，是根据其静态的类型来分派的
-```
+```java
 // 示例代码
 public class Demo {
     void test(Grandpa grandpa) {
@@ -55,7 +73,7 @@ class Son extends Father {}
 #### 方法重写-方法的动态分派
 * 重写(override/overwrite)方法在字节码中由invokevirtual指令来执行调用
 * 调用方法是在运行期动态地确定的，方法重写是**动态**的，是**运行期行为**。
-```
+```java
 // java代码
     class Fruit {
         void test() {
