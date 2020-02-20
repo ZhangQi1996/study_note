@@ -107,16 +107,17 @@ class Son extends Father {}
     aload_1     // 从local var table(array)中加载obj ref到栈顶
     invokevirtual #4 <com/zq/jvm/Fruit.test> // 实际类型是Apple，在runtime动态调用的是Apple.test
     return
-----------------------------------------
-// invokevirtual的动态分派流程
-1. 首先寻找到操作数栈顶的第一个元素所指向的实际的对象的真正的类型
-2. 在实际/真正的类型中寻找到所调用的方法并权限校验通过，并调用该方法（如下，虽然字节码中标识的是Fruit.test，
-    但在runtime时，先找到真实类型为Apple，然后在Apple类中找到了test方法并权限校验通过，则调用Apple.test方法）
-3. 若在真正的类中找不到,就按继承的层次关系，从子类往父类重复查找是否存在满足要求的方法，然后去执行。若找不到则抛异常
+// ----------------------------------------
+// **invokevirtual的动态分派流程**
+// 1. 首先寻找到操作数栈顶的第一个对象的ref，去heap中找到这个对象实例，找出其真正的类型
+// 2. 然后去该类在方法区中的虚方法表中找出其对应方法（比如test()方法）
+// 3. 检查方法并权限校验通过，并调用该方法（如下，虽然字节码中标识的是Fruit.test，
+//     但在runtime时，先找到真实类型为Apple，然后在Apple类中找到了test方法并权限校验通过，则调用Apple.test方法）
+// 4. 若在真正的类中找不到,就按继承的层次关系，从子类往父类重复查找是否存在满足要求的方法，然后去执行。若找不到则抛异常
 ```
 #### 虚方法表，接口方法表
 * 针对动态分派（invokevirtual），jvm会在类的方法区中建立一个虚方法表的数据结构(virtual method table, vtable)
-    * vtable是在类加载的链接阶段（把符号引用转为直接引用）完成初始化
+    * vtable是在类加载的连接阶段（把符号引用转为直接引用）完成初始化
     * 在vtable中，若子类继承的父类的方法但是没有重写，则在vtable中，子类的该方法入口会指向父类中该方法的入口地址
 * 针对invokeinterface指令来说，jvm会建立一个叫做接口方法表的数据结构（interface method table, itable）
     * itable与vtable类似
