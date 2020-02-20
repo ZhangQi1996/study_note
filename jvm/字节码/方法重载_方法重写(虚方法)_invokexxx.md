@@ -3,8 +3,8 @@
 * 静态解析的四种情形
     1. 静态方法 invokestatic
         * 静态方法不可以重写(override)，唯一确定，不存在多态性
-    2. 父类方法 invokespecial
-    3. 构造方法 invokespecial
+    2. 父类的构造方法 invokespecial
+    3. 自己的构造方法 invokespecial
     4. 私有方法 invokespecial
         * 因为私有方法不允许重写(override)，唯一确定，不存在多态性
     * 以上四种方法称为非虚方法，在类加载阶段就可以从符号引用转换为直接引用
@@ -35,7 +35,7 @@
 * invokestatic
     * 调用静态方法
 * invokespecial
-    * 调用自己的私有/构造方法<init>，以及父类的方法
+    * 调用自己的私有/构造方法<init>，以及父类的构造方法
 * invokevirtual
     * 调用虚方法，运行期，动态查找的过程。（常见于调用重写的方法-方法动态分配）
 * invokedynamic
