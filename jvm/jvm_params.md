@@ -1,4 +1,6 @@
 ## jvm的常见格式
+* -X开头的参数是非标准参数，也就是只能被部分VM识别，而不能被全部VM识别的参数。
+* -XX开头的参数是非稳定参数，随时可能被修改或者移除。
 * -XX:+\<option\> 表示开启option选项
 * -XX:-\<option\> 表示关闭option选项
 * -XX:\<option\>=\<value\> 表示给option选项赋值
@@ -68,5 +70,12 @@
     * -XX:+PrintTenuringDistribution 打印年龄对象的情况
     * -XX:TargetSurvivorRatio=n 表明当to space中存活的空间达到其n%的时候，就会重新计算潜在的
         MaxTenuringThreshold这个值(该值可能会减少或增加但不会大于MaxTenuringThreshold的值)。
-
+* 编译运行有关参数
+    * -XX:CompileThreshold=n 设置方法/回边计数器的阈值，当一个方法或者循环次数到达这个阈值，则这个方法的代码就是热点代码
+        交给jit编译器编译尝试编译为本地机器码
+    * -server/client 将jvm启动为何种模式，server模式采用server（c2）jit编译器，cli模式采用client（c1）jit编译器
+    * -Xint 强制jvm只进行解释执行
+    * -Xcomp 强制jvm尽全力做编译执行，若出现激进编译优化的时候会换为解释执行
+    * -XX:-UseCounterDecay 默认是开启方法计数器的衰减的，即每到一段时间将还不是热点代码的函数计数器减半（与下一个有关）
+    * -XX:CounterHalfLifeTime参数设置方法计数器半衰周期的时间（s）（与上一个有关）
 

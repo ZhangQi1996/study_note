@@ -1,1 +1,0 @@
-* https://repo.huaweicloud.com/java/jdk/
