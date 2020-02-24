@@ -1,5 +1,5 @@
 * 修改文件夹的所有者group（owner group）：
-    * chown -R groupname some-folder
+    * chown -R .groupname some-folder
     * 注意，这里的groupname前面要加一个点
     * chgrp -R groupname some-folder
 * 同时修改文件夹的所有者（owner）和所有者group（owner group）：
