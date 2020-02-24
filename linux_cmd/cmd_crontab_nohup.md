@@ -30,7 +30,7 @@
 /n: 表示每间隔n单位时间： */5 * * * * cmd 表示每5分钟执行一次cmd
 ```
 * 举例
-    * \* \* \* \* \* echo $(date '+\\%Y-\\%m-\\%d \\%H:\\%M:\\%S') >> /home/david/cron.txt 2>/dev/null
+    * \* \* \* \* \* date '+\\%Y-\\%m-\\%d \\%H:\\%M:\\%S' >> /home/david/cron.txt 2>/dev/null
 ------------------------
 #### nohup 不挂断运行
 * nohup cmd
