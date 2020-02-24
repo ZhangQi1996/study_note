@@ -14,7 +14,7 @@ awk  更适合格式化文本，对文本进行较复杂格式处理
     1 2 3 4 5 6
     -1 -2 -3 -4 -5 -6
     ```
-    * awk '{printf $2}'1.txt OR cat 1.txt | awk '{printf $2}'
+    * awk '{printf $2}'1.txt 或者 cat 1.txt | awk '{printf $2}'
         * $2指的是在1.txt中的经过分隔符后的第2列
         ```
         # 结果
