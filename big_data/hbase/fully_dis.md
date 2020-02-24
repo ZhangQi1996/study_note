@@ -15,7 +15,7 @@ node-c.example.com      no      yes         yes
 ```
 * 配置
     1. 在conf/regionservers文件中清空并写入你要部署RS的主机名或者IP
-        * $ echo slave1$'\n'slave2 > conf/regionservers
+        * $ echo -e 'slave1\nslave2' > conf/regionservers
         * 将slave1与slave2添加到文件中
     2. 配置另一个主机为备份Master
         1. 若conf文件夹下没有backup-masters文件则在其下新建这个文件
