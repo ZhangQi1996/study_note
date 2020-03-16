@@ -98,6 +98,29 @@
             ```
         * stream.collect(Collectors.groupingBy(Function<T, K> classifier, Supplier<M> s, Collector<V, T, A> downstream)) -> M<K, V>
             * 仅仅多一个Supplier用于返回何种类型的map容器
+            * collect(Collector) -> R 详解
+            ```java
+            // A 中间容器， R结果容器
+            public final <R, A> R collect(Collector<? super P_OUT, A, R> collector) {
+                A container;
+                if (isParallel()
+                        && (collector.characteristics().contains(Collector.Characteristics.CONCURRENT))
+                        && (!isOrdered() || collector.characteristics().contains(Collector.Characteristics.UNORDERED))) {
+                    // 当stream是无序并行流且标记为并发时
+                    // 调用supplier，accumulator
+                    // 由于是并发处理所以用不到combiner
+                    container = collector.supplier().get();
+                    BiConsumer<A, ? super P_OUT> accumulator = collector.accumulator();
+                    forEach(u -> accumulator.accept(container, u));
+                } else {
+                    // 是 串行流 或者 非并行无序 时
+                    container = evaluate(ReduceOps.makeRef(collector));
+                }
+                return collector.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)
+                       ? (R) container
+                       : collector.finisher().apply(container);
+            }
+            ```
     3. 一个流中的分区(目前jdk8仅支持true/false两种分区)
         * **其实分区是分组的一个特例，分区可以通过分组实现**
         * stream.collect(Collectors.partitioningBy(Predicate<T> pred)) -> Map<Boolean, List<T>>

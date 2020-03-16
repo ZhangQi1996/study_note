@@ -4,6 +4,8 @@
 * 它是一个可变的规约操作，将集聚输入元素到可变容器中，此外也可以（可选的）在所有元素累积后
     将最终结果进行转换表示。支持串行/并行。
 * 基本组成方法（用于构建基本的Collector实例）
+    * 注意以下方法在collect的调用过程中，**除了characteristics都只会被调用一次**，故一般情况将相应的定义定义在
+        对应的方法体中。
     1. supplier() -> Supplier<A> (实例方法)
         * 用于创建一个新的结果容器a（返回的是一个创建动作函数）
     2. accumulator() -> BiConsumer<A, T> (实例方法)
@@ -28,6 +30,9 @@
                 * 就是满足分开计算与单独串行计算的结果一致
     4. finisher() -> Function<A, R> (实例方法)
         * 返回一个将a进行最终的转换的动作函数 (可选操作，也就是可以转换也可以不转换)
+    5. characteristics() -> Set<Characteristics> (实例方法)
+        * 由于其返回的并非动作且在collect的过程中需要对Collector的相关特征进行过滤判断，
+            所以本方法会被调用多次。
 * 常用方法
     1. static of(Supplier<R> s, BiConsumer<R, T> a, 
             BinaryOperator<R> c, Characteristics... cs) -> Collector<T, R, R>
@@ -35,8 +40,16 @@
         
 * Collector的特征
     1. CONCURRENT
+        * 注意使用该字段是在parallel stream的前提下的
+            1. 当**没有提供了CONCURRENT特征**，则对并行流对于**每一分区**分别使用一个容器进行处理（即对每一个分区调用一次Supplier动作）
+            2. 当**提供了CONCURRENT特征**，则对并行流对于**全部分区之间使用一个容器在并发线程安全的情况下进行处理**
+        * CONCURRENT通常与UNORDERED搭配使用
+            * 对于输入的源在并发的情形下一般是不要求保证其有序的
     2. UNORDERED
+        * 表示Collector的操作并不保证对源输入数据的顺序
     3. IDENTITY_FINISH
+        * 表示finisher就是一个identity操作，通常做法就是在finisher方法中抛出一个不支持异常，前提是需要保证A到R可以cast
+        * 当定义的Collector中加入了IDENTITY_FINISH特性，则不会调用finisher函数，直接通过强制转换A -> R
     * 通过对特征的设置达到对规约操作的优化
 * Collector实例串行使用的等价代码
     ```java
@@ -49,138 +62,22 @@
     // Function<R, R>
     return collector.finisher().apply(container);
     ```
-* 自实现Collector
-```java
-package com.zq.jdk8;
-
-import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-
-class Stu {
-    private String name;
-
-    private int score;
-
-    public Stu() {
-        this(UUID.randomUUID().toString(), (int) (Math.random() * 100));
-    }
-
-    public Stu(String name, int score) {
-        this.name = name;
-        this.score = score;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public int getScore() {
-        return score;
-    }
-
-    public void setScore(int score) {
-        this.score = score;
-    }
-
-    @Override
-    public String toString() {
-        return "Stu{" +
-                "name='" + name + '\'' +
-                ", score=" + score +
-                '}';
-    }
-}
-
-class MutableOptional<T> {
-    private T val;
-
-    private static final MutableOptional<?> EMPTY = new MutableOptional<>(null);
-
-    private MutableOptional(T val) {
-        this.val = val;
-    }
-
-    public T getVal() {
-        return val;
-    }
-
-    public void setVal(T val) {
-        this.val = val;
-    }
-
-    public boolean isPresent() {
-        return val != null;
-    }
-
-    public void ifPresent(Consumer<T> consumer) {
-        Objects.requireNonNull(consumer);
-
-        if (isPresent())
-            consumer.accept(val);
-    }
-
-    public void cover(MutableOptional<T> mo) {
-        setVal(mo.getVal());
-    }
-
-
-    public static <T> MutableOptional<T> empty() {
-        @SuppressWarnings("unchecked")
-        MutableOptional<T> empty = (MutableOptional<T>) EMPTY;
-        return empty;
-    }
-
-    public static <T> MutableOptional<T> of(T t) {
-        if (t == null) return empty();
-
-        return new MutableOptional<>(t);
-    }
-}
-
-public class Demo {
-
-
-    public static void main(String[] args) {
-        List<Stu> stus = Stream.generate(Stu::new).limit(1000).collect(Collectors.toList());
-
-        // stream的常规方式
-        stus.stream().min(Comparator.comparingInt(Stu::getScore)).ifPresent(System.out::println);
-
-        //stream的collect方式
-        stus.stream().collect(Collectors.minBy(Comparator.comparingInt(Stu::getScore))).ifPresent(System.out::println);
-
-        // 自实现的Collector
-        Supplier<MutableOptional<Stu>> supplier = MutableOptional::empty;
-
-        BiConsumer<MutableOptional<Stu>, Stu> accumulator = (r, t) -> {
-            if (!r.isPresent() || t.getScore() < r.getVal().getScore())
-                r.setVal(t);
-        };
-
-        BiConsumer<MutableOptional<Stu>, MutableOptional<Stu>> combiner = (r1, r2) -> {
-            if (!r1.isPresent() ||
-                    (r2.isPresent() && r2.getVal().getScore() < r1.getVal().getScore())) {
-                r1.cover(r2);
-            }
-        };
-
-        stus.parallelStream().collect(supplier, accumulator, combiner).ifPresent(System.out::println);
-    }
-}
-```  
 
 #### 辅助类Collectors
+* 提供了Collector常见特征的集合
+    1. CH_CONCURRENT_ID
+        * 由于正常情形下CONCURRENT是跟UNORDERED搭配使用的
+        * CONCURRENT，UNORDERED，IDENTITY_FINISH
+    2. CH_CONCURRENT_NOID
+        * CONCURRENT，UNORDERED
+    3. CH_ID
+        * IDENTITY_FINISH
+    4. CH_UNORDERED_ID
+        * UNORDERED，IDENTITY_FINISH
+    5. CH_NOID
+        * 返回一个不带任何特征的空集合
 * 提供了Collector的常见具体实现，是一个工厂类
-* 常用方法
+* 常用方法(均为静态方法)
     * 区分Collectors中的reducing方法与Stream中的reduce方法
         1. reducing返回的是Collector，reduce返回的是标量
         2. reducing用于处理可变规约而reduce则是不变规约
@@ -190,15 +87,23 @@ public class Demo {
     3. averagingInt/Long/Double, stream.collect(Collectors.averagingInt(...)) -> Double
         * 通常在不使用流的mapToInt/Long/Double之类的mapper，从而通过此方法达到求平均。
         * averagingInt/Long/Double值得是所要求的平均的源类型
+        * 同summingInt/Long/Double
+            * 比如int，使用new int\[2\]充当容器，其中\[0\]是总和，\[1\]是存储个数
     4. summingInt/Long/Double，stream.collect(Collectors.summingInt(...)) -> Int/Long/Double
         * 类似averagingInt
+        * **其中的容器实现是通过构造相应类型的数组实现的，由于不是包装类型，若不通过构造容器，则由于形参的原因，
+            修改的数值并非原来的数值**
+            * 比如对于int，通过构造new int\[1\]充当容器
+            * 比如对于double，通过构造new double\[3\]充当容器, 3是为了保证精度的计算处理，详见文档
     5. summarizingInt/Long/Double, stream.collect(Collectors.summarizingInt(...)) -> Int/Long/DoubleSummaryStatistics
         * 返回包含最大最小平均等的相关总结统计信息
     6. joining
         * 用于将多个字符串拼接
         1. joining()
+            * 基于StringBuilder为中间容器，String为结果容器，通过append操作完成聚集/合并操作的Collector，特征为CH_NOID
         2. joining(delimiter)
         3. joining(delimiter, prefix, suffix)
+            * 基于StringJoiner为中间容器，String为结果容器，通过add操作完成聚集，merge操作合并操作的Collector，特征为CH_NOID
     7. groupingBy
         1. stream.collect(Collectors.groupingBy(Function<T, K> classifier)) -> Map<K, List<T>>
             * 通过传入同一个分类的动作函数，T就是流中的每一个元素，R就是根据分类的依据
@@ -228,4 +133,32 @@ public class Demo {
         * 类似stream中的count
     10. collectingAndThen(Collector<T, A, R> downstream, Function<R, RR> finisher) -> Collector<T, A, RR>
         * 通过downstream得到的结果R，通过finisher进一步处理得到RR
+        * 其仍然基于new CollectorImpl实例， 通过将downstream.finisher().andThen(finisher)传递
+            给CollectorImpl来完成。其次在过程中，确保传给CollectorImpl的characteristics必须不带IDENTITY_FINISH特征
+    11. toList()
+        * 返回一个基于ArrayList特化的Collector，仅仅提供CH_ID特征
+    12. toSet()
+        * 返回一个基于HashSet特化的Collector，仅仅提供CH_UNORDERED_ID特征
+    13. toCollection(Supplier<C> collectionFactory)
+        * 是toList/Set的泛化版本，通过collectionFactory来具体化Collection的具体实现，仅仅提供CH_ID特征
+    14. mapping(Function mapper, Collector downstream)
+        * 对流中过的输入先进行mapper操作得到新的输入流，然后通过downstream进行处理的动作
+        ```java
+        return new CollectorImpl(
+            downstream.supplier(),  // supplier
+            (a, t) -> downstream.accumulator().accept(a, mapper.apply(t)), // accumulator
+            downstream.combiner(), // combiner
+            downstream.finisher(), // finisher
+            downstream.characteristics() // characteristics
+        );
+        ```
+        
+* 静态内部类CollectorImpl（是接口Collector的实现）
+    * 有两个构造方法：一个带finisher一个不带finisher，原因就是有些Collector的中间容器就是结果容器
+* Collectors中的Collector获取实现：
+    1. 通过实例化CollectorImpl实现
+    2. 通过Collectors中的静态方法reducing实现，而reducing优势通过实例化CollectorImpl实现的
+* reducing(U identity, Function<T, U> mapper, BinaryOperator<U> op) -> Collector<T, ?, U>
+    * 
     
+        
