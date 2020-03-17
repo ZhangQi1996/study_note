@@ -105,10 +105,12 @@
         3. joining(delimiter, prefix, suffix)
             * 基于StringJoiner为中间容器，String为结果容器，通过add操作完成聚集，merge操作合并操作的Collector，特征为CH_NOID
     7. groupingBy
+        * 返回的Collector不支持并发操作的（因为返回的Collector中的特征仅为CH_ID or CH_NOID），故在调用combiner的动作时，会导致合并map而这样的消耗代价是很高的，
+            故若想使用基于并发的，请使用groupingByConcurrent(Function, Supplier, Collector)
         1. stream.collect(Collectors.groupingBy(Function<T, K> classifier)) -> Map<K, List<T>>
             * 通过传入同一个分类的动作函数，T就是流中的每一个元素，R就是根据分类的依据
             * 使用场景select * from stu group by name
-        2. stream.collect(Collectors.groupingBy(Function<T, K> classifier, Collector<V, T, A> downstream)) -> Map<K, V>
+        2. stream.collect(Collectors.groupingBy(Function<T, K> classifier, Collector<T, A, V> downstream)) -> Map<K, V>
             * downstream这个collector其实就**是将属于特定类别的子流进行collect动作**
             ```java
             import java.util.stream.Collectors;
@@ -121,8 +123,86 @@
                 }
             }
             ```
-        3. stream.collect(Collectors.groupingBy(Function<T, K> classifier, Supplier<M> s, Collector<V, T, A> downstream)) -> M<K, V>
+        3. stream.collect(Collectors.groupingBy(Function<T, K> classifier, Supplier<M> s, Collector<T, A, V> downstream)) -> M<K, V>
             * 仅仅多一个Supplier用于返回何种类型的map容器
+            * 源码分析
+            ```java
+            public static <T, K, D, A, M extends Map<K, D>>
+                /**
+                T: 源输入类型
+                K: 返回Map中的Key类型
+                D: 返回Map中的Val类型（也就是下游选择器finisher处理之后的容器类型）
+                A: 在对map[key]进行下游选择器容器处理的中间容器类型
+                M: map类型
+                */
+                Collector<T, ?, M> groupingBy(Function<? super T, ? extends K> classifier,
+                                          Supplier<M> mapFactory,
+                                          Collector<? super T, A, D> downstream) {
+           
+                Supplier<A> downstreamSupplier = downstream.supplier();
+                BiConsumer<A, ? super T> downstreamAccumulator = downstream.accumulator();
+                BiConsumer<Map<K, A>, T> accumulator = (m, t) -> {
+                    K key = Objects.requireNonNull(classifier.apply(t), "element cannot be mapped to a null key");
+                    // 若Map中的key不存在，则为map[key]新建一个中间容器a
+                    A container = m.computeIfAbsent(key, k -> downstreamSupplier.get());
+                    // 将T t add到中间容器a中
+                    downstreamAccumulator.accept(container, t);
+                    // 这样就完成了将t add到Map[key]的目的
+                };
+           
+                BinaryOperator<Map<K, A>> merger = Collectors.<K, A, Map<K, A>>mapMerger(downstream.combiner());
+                
+                // 注意由于java泛型是伪泛型，由java编译器的泛型擦除实现
+                @SuppressWarnings("unchecked")
+                Supplier<Map<K, A>> mangledFactory = (Supplier<Map<K, A>>) mapFactory;
+        
+                if (downstream.characteristics().contains(Collector.Characteristics.IDENTITY_FINISH)) {
+                    return new CollectorImpl<>(mangledFactory, accumulator, merger, CH_ID);
+                }
+                else {
+                    @SuppressWarnings("unchecked")
+                    Function<A, A> downstreamFinisher = (Function<A, A>) downstream.finisher();
+                    Function<Map<K, A>, M> finisher = intermediate -> {
+                        intermediate.replaceAll((k, v) -> downstreamFinisher.apply(v));
+                        @SuppressWarnings("unchecked")
+                        M castResult = (M) intermediate;
+                        return castResult;
+                    };
+                    return new CollectorImpl<>(mangledFactory, accumulator, merger, finisher, CH_NOID);
+                }
+            }
+           
+            ```
+            * 集合泛型擦除举例
+            ```java
+            // 集合泛型擦除举例
+            // 实现替换map中的val为不同类型（实际上仍为同一map，由于map重存储的就是Object）
+            public class Demo {
+                public static void main(String[] args) {
+                        
+                    List<String> list = Arrays.asList("01", "02");
+            
+                    Map<String, String> map = list.stream().collect(Collectors.toMap(Function.identity(), Function.identity()));
+            
+                    System.out.println(map);
+            
+                    Map<String, Integer> stringIntegerMap = mapValAllReplacing(map, (k, v) -> Integer.parseInt(v));
+            
+                    System.out.println(stringIntegerMap);
+            
+            
+                }
+            
+                @SuppressWarnings("unchecked")
+                static <K, V_OLD, V_NEW> Map<K, V_NEW> mapValAllReplacing(Map<K, V_OLD> map,
+                        BiFunction<K, V_OLD, V_NEW> valConvertingFunc) {
+                    // replaceAll方法就是将map中的val进行替换
+                    // 由于类型擦除机制，且集合本身存储的只是Object，故这样写是ok的
+                    map.replaceAll((BiFunction<K, V_OLD, V_OLD>) valConvertingFunc);
+                    return (Map<K, V_NEW>) map;
+                }
+            }
+            ```
     8. partitioningBy
         * 一个流中的分区(目前jdk8仅支持true/false两种分区)
         * **其实分区是分组的一个特例，分区可以通过分组实现**

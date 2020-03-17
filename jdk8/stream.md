@@ -2,7 +2,10 @@
 * 3个部分
     1. 源
     2. 另个或多个中间操作
+        * 中间操作返回的是新的stream对象
     3. 终止操作
+        * 终止操作可能会带来一些副作用(side-effect),比如对于stream.forEach(Function),
+            可能会造成对流中元素潜在的状态修改操作。 
 * 流的操作分为：
     1. 惰性求值（中间操作）
         * 返回Stream
@@ -63,9 +66,24 @@
     * collect(Collector c/Supplier ...) -> R （实例方法，终止操作）
     * count() -> long （实例方法，终止操作）
         * 得到流中元素个数
+    * peek(Consumer) -> Stream<T>
+        * 就是对流中每个元素执行consumer动作，但最终仍然返回原始流。
     * findFirst() -> Optional<T>（实例方法，终止操作）
-    * findAny() -> Optional<T>（实例方法，终止操作）    
-
+    * findAny() -> Optional<T>（实例方法，终止操作）
+    * forEach(Consumer) -> void
+    * forEachOrdered(Consumer) -> void
+        * 以源中原始的顺序去访问流中元素.  
+* 流操作的注意点
+    * 由于流的并行/并发性，所以流主要是面向无状态的，不中途修改的。若中途发生状态变化，可能导致并发异常。
+        这个并发异常状态是跟源相关的，比如原为ConcurrentHashMap则不存在并发问题。所以在并发状态下，尽量不
+        要去对流元素进行状态修改。（即流管道的结果是不依赖与流中途的状态修改的）
+    * stream是继承了AutoClosable接口的，故使用try with resource的方式对资源进行close。但一般情况下
+        是不用close的，当源是IO channel（e.g. Files(Path, Charset)）时是需要close的  
+    * stream的串行/并行处理是通过底层的一个bool类型维护的。串行/并行由最后一个sequential/parallel()来决定,
+        通过stream.isParallel()来判断
+    
+    
+    
 
 #### IntStream接口
 * 注意：该流中包含的均是原子类型的int
@@ -74,8 +92,9 @@
     2. IntStream.rangeClosed(startInclusive, endInclusive)
 #### 流的相关概念
 * 流与集合的差别
-    * 流：关注的是对数据的计算
-    * 集合：关注的数据与数据存储
+    * 流：不提供直接的元素访问或者操作，而关注于与数据源声明式的描述以及在聚合中的**计算操作**。
+        若提供的流并未提供预想的功能，可以通过stream.iterator/spliterator()来提供一个可控的遍历操作
+    * 集合：关注的是高效的**数据管理与访问**
 * 流的相关操作
     1. 两个流的笛卡尔积
         * stream1.flatMap(item1 -> stream2.map(item2 -> new Pair(item1, item2)))
@@ -126,5 +145,44 @@
         * stream.collect(Collectors.partitioningBy(Predicate<T> pred)) -> Map<Boolean, List<T>>
         * stream.collect(Collectors.partitioningBy(Predicate<T> pred, Collector<V, T, A> downstream)) -> Map<Boolean, List<T>>
             * downstream这个collector其实就是将属于特定分区的子流进行collect动作
+
+#### BaseStream解析
+* 是Stream，Int/Long/DoubleStream等的父接口
+* 基本接口方法
+    1. Iterator<T> iterator()
+    2. Spliterator<T> spliterator()
+    3. boolean isParallel()
+        * 该方法需要在调用终结操作之前调用，否则结果无法预料
+    4. S sequential()
+        * S extends BaseStream<T, S>
+        * 返回串行流
+    5. S parallel()
+        * 返回并行流
+    6. S unordered()
+        * 返回无需流
+    7. S onClose(Runnable closeHandler)
+        * 返回一个包含关闭处理器的stream，当stream的close方法被调用过的时候，close方法中就会去调用
+            这些closeHandler。这些closeHandler是按照添加顺序执行的，若在执行closeHandler时，抛出异常，其后的
+            closeHandler也会执行。
+        * 在多个closeHandler中抛出的异常，只会抛出第一个异常给close方法的调用者，其后出现的异常都会被压制。若出现其后的异常
+            与第一个异常相同(Objects.equals(o1, o2))，则不会压制这个异常。
+        ```java
+        import java.util.Arrays;import java.util.List;import java.util.stream.Stream;public class Demo {
+           public static void main(String[] args){
+               List<String> list = Arrays.asList("hello", "world", "hello world"); 
+               try (Stream<String> stream=list.stream()) {
+                   stream.onClose(() -> System.out.println("first close"))
+                       .onClose(() -> {
+                           throw new RuntimeException();
+                           System.out.println("first close");
+                       }).onClose(() -> System.out.println("first close"))
+                       .forEach(System.out::println);
+                   
+               }
+           }
+       
+       }
+        ```
+    
     
     
