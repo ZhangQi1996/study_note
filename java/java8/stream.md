@@ -280,11 +280,13 @@
     }
     ```
 #### stream的构建
+![](../imgs/stream_struct.png)
 * StreamSupport辅助类
     * 用与生产stream实例
 * Sink接口
     * 继承自Consumer接口
     * 方法
+        * 都是放在终止操作中的
         1. default begin(long size) {}
             * 将sink状态重置一接收最新的数据集，这个方法必须在sink收到数据之前被调用，
                 在调用end方法之后，你可能会调用跟这个begin方法来重置这个sink以用来完成另一个计算操作，
@@ -301,7 +303,7 @@
 * AbstractPipeline抽象类
     * 继承抽象类PipelineHelper
         * 用来捕获stream pipeline中的相关信息，比如输出状态（T是ref, int, long, double?）, 
-            若干中间操作, 流的标志（并发，有序，非空等）, 是否流并行等
+            **若干中间操作**, 流的标志（并发，有序，非空等）, 是否流并行等
     * 实现接口BaseStream
         * BaseStream负责一些iterator(), spliterator(), isParallel(), close(), onClose()
     * 功能
@@ -344,10 +346,13 @@
                 2. ReferencePipeline.StatelessOp内部抽象静态类
                     * 继承ReferencePipeline抽象类
                     * 作用
-                        1. 用来表示stream pipeline的intermediate stage
+                        1. 用来表示stream pipeline的无状态的intermediate stage
                         2. intermediate stage主要就是完成中间操作，中间操作用Sink封装
                             * 这也侧面的表示了为什么stream.mid_op1().mid_op2()是不会执行计算的，是因为这样的链式
                                 书写只是**完成了计算动作链的封装**，并没有真正执行计算。
+                3. ReferencePipeline.StatefulOp内部抽象静态类
+                    * 继承ReferencePipeline抽象类
+                    * 用来表示stream pipeline的有状态的intermediate stage
 
 * TerminalOp接口
     * 封装着终止操作
@@ -361,6 +366,60 @@
             * 并行执行终结操作
         4. abstract evaluateSequential(PipelineHelper<E_IN> helper, Spliterator<P_IN> spliterator) -> R
             * 串行执行终结操作
+            * 方法实现解析
+            ```java
+            // stream.some_intermediate_ops..().xxx(lambda_func); // xxx()是一个终结方法
+            public void xxx(Consumer<? super P_OUT> action) {
+                // XXXOps.makeRef(action, false)返回一个TerminalOp实现实例
+                evaluate(XXXOps.makeRef(action, false)); // 是否并行
+            } 
+           
+            final <R> R evaluate(TerminalOp<E_OUT, R> terminalOp) {
+                assert getOutputShape() == terminalOp.inputShape();
+                if (linkedOrConsumed)
+                    throw new IllegalStateException(MSG_STREAM_LINKED);
+                linkedOrConsumed = true;
+        
+                return isParallel()
+                       // spliterator的获取实则是通过this.sourceSpliterator方法来获取的
+                       ? terminalOp.evaluateParallel(this, sourceSpliterator(terminalOp.getOpFlags()))
+                       : terminalOp.evaluateSequential(this, sourceSpliterator(terminalOp.getOpFlags()));
+            }
+           
+            // 在evaluate方法中通过调用TerminalOp接口中的evaluateSequential/Parallel方法
+            // 在并行的情况下就调用fork join框架完成计算
+            public <P_IN> R evaluateSequential(PipelineHelper<T> helper,
+                                               Spliterator<P_IN> spliterator) {
+                // makeSink()传入的sink是一个待返回值的sink，返回值通过get实现
+                return helper.wrapAndCopyInto(makeSink(), spliterator).get();
+            }
+           
+            // 将传入的terminal sink进行动作链封装，然后将spliterator中的元素复制推送给封装好的sink
+            final <P_IN, S extends Sink<E_OUT>> S wrapAndCopyInto(S sink, Spliterator<P_IN> spliterator) {
+                // wrapSink(sink)就是for (AbstractPipeline p=AbstractPipeline.this; p.depth>0; p=p.previousStage) {
+                //      sink = p.opWrapSink(p.previousStage.combineFlags, sink);
+                // }
+                // 然后将wrappedSink返回
+                copyInto(wrapSink(Objects.requireNonNull(sink)), spliterator);
+                return sink;
+            }
+            
+            // copyInto就是将spliterator中的元素推送到动作链包装好的wrappedSink中
+            // copyInto遵循先调用sink.begin(size), sink.accept(), sink.end()的顺序
+            final <P_IN> void copyInto(Sink<P_IN> wrappedSink, Spliterator<P_IN> spliterator) {
+                Objects.requireNonNull(wrappedSink);
+        
+                if (!StreamOpFlag.SHORT_CIRCUIT.isKnown(getStreamAndOpFlags())) {
+                    wrappedSink.begin(spliterator.getExactSizeIfKnown());
+                    // 故最终最终的计算在此处
+                    spliterator.forEachRemaining(wrappedSink);
+                    wrappedSink.end();
+                }
+                else {
+                    copyIntoWithCancel(wrappedSink, spliterator);
+                }
+            }
+            ```
     * 实现类
         1. FindOp
             * 位于FindOps工厂类中

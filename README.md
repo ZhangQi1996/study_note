@@ -1,2 +1,2 @@
 # study_note
-ZQ's the studying note 
+ZQ's study notes.
