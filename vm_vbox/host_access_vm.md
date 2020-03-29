@@ -5,6 +5,7 @@
     * 修改为可以root ssh登录
     
     ![](imgs/ssh_root_login.png)
+    * 保存配置文件后，键入service sshd restart回车重启ssh服务
 2. 获取vm的ip
     * 键入ifconfig
     
