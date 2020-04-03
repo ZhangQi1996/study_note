@@ -64,6 +64,24 @@ _proc_is_running() {
 EOF
 }
 
+# 用于获取一个脚本执行时所在的目录
+# 使用方法：
+# #1.sh
+# app_path=$(get_app_path "$0")
+get_app_path() {
+  local PRG="$1"
+  local APP_PATH=
+  if [[ $PRG =~ .*/.* ]]; then
+    CUR_PATH=$(pwd)
+    cd $(dirname $PRG)
+    APP_PATH=$(pwd)
+    cd $CUR_PATH
+  else
+    APP_PATH=$(pwd)
+  fi
+  echo -n $APP_PATH
+}
+
 
 
 
