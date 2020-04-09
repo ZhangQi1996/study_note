@@ -91,4 +91,42 @@
         }
     }
     ```
+* 文件
+    * 常见类
+        1. class File
+        2. class RandomAccessFile implements DataOutput, DataInput, Closeable
+            * 构造方法
+                1. RandomAccessFile(String filePath, String mode)
+                2. RandomAccessFile(File file, String mode)
+            * 这个类的实例支持对于一个随机访问文件读写操作，一个随机访问文件就类似于存储在文件系统中的一个大的字节数组，
+                对于这种文件有一种游标（也就是对那个字节数组的索引）叫做文件指针，输入操作则从文件指针处开始进行读操作，
+                并逐字节移动前进文件指针。若随机访问文件以rw模式创建，那么也将支持输出操作（也就是往文件中写，写的过程与read同理）。
+                当对文件（由于对应文件系统的一个字节数组）过度写就会导致那个字节数组的扩张，通过getFilePointer方法获取file pointer，
+                通过设置seek方法来设置file pointer。
+            * 通常，对于此类中的所有读取例程，如果在读取所需字节数之前已到达文件末尾，则将引发EOFException（这是IOException的一种）。
+                若由于非EOF的原因导致不能read则抛出IOException异常而不是EOFException，比如当流关闭的时候就抛出IO异常。
+            * 用于
+                * 细致的操作，不想创建文件流等
+* 文件锁（对FileChannel）
+    * 是细粒度的锁（支持锁定为位置，长度，锁的类别）
+        * fileChannel.lock(long pos, long size, boolean shared)
+    1. 文件的共享锁（读）
+    2. 文件的排它锁（写）
+    ```java
+    public class Test5 {
+        public static void main(String[] args) throws IOException {
+            String path = Util.getFilePathByClassLoader("nio_test.txt");
+            RandomAccessFile file = new RandomAccessFile(path, "rw");
     
+            FileChannel channel = file.getChannel();
+            // 获得文件锁
+            FileLock fileLock = channel.lock(0, 2, true);
+    
+            System.out.println("Valid: " + fileLock.isValid());
+            System.out.println("Lock type: " + fileLock.isShared());
+            
+            fileLock.release(); // 释放锁
+            file.close();
+        }
+    }
+    ```
