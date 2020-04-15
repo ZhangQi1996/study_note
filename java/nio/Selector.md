@@ -1,130 +1,8 @@
-#### NIO 同步非阻塞IO
-* io与nio的比较
-    * java.io中最为核心的一个概念是流（Stream），面向流的编程。java中一个流要么是输入流要么是输出流，不可能是
-        输入又是输出流。
-    * java.nio有3个核心概念：Selector，Channel and Buffer。在nio中，我们面向块（block）或是
-        缓冲区（buffer）进行编程。Buffer本身就是一块内存，底层实现上就是一个数组。数据的读写就是通过buffer
-        （大小通过XXXBuffer.allocate(int)）来实现的
-        ![](imgs/nio_strcut.png)
-        1. Java中的7种原生类型都有其对应的Buffer类型：IntBuffer，ByteBuffer等（没有BooleanBuffer）
-        2. Channel可以对其进行读写，但与Stream不同的是就是Channel是双向的，一个流只能是InputStream/OutputStream，
-            其次Channel的底层是Buffer，所有的读写都市通过Buffer来执行的。
-* java.nio Buffer的三个状态属性
-    1. position
-        * **下一个**读写的索引，其值小于limit
-    2. limit
-        * 就是读写操作的索引后边界（exclusive），其值介于\[0, capacity\]
-    3. capacity
-        * 包含的元素的个数，不能为负数，为固定值。
-    ```
-    // E.G.
-        |------------------------------|
-        0   1   2   ...     c-3  c-2  c-1
-            ↑                     ↑
-            p                     l
-            |---可读写的位置---|
-    ```
-    * 操作的流程
-        ```
-        while (true) {
-            buf.clear();
-            // buf写
-            // buf读
-        }
-        ```
-    * 补充
-        1. mark
-            * 用于对buf的mark()与reset()操作
-        2. offset
-            * 主要用于多个buf共用一个底层数组起始的不同偏移量（比如buf的slice操作）
-        3. address
-            * 仅仅用于direct buf，用于存放真正的数据的在os中的地址
-* 创建buf的三种方式
-    1. XXXBuffer.allocate(int)
-    2. XXXBuffer.allocateDirect(int)
-    3. XXXBuffer.wrap(byte[] \[, int, int\])
-        * 直接使用字节数组来封装一个buf，不建议使用
-* Buffer的Scattering与Gathering
-    * 也就是分散与和聚，比如在channel中奖数据读入到一个buffer数组中，当第一个buf读满的时候，就读第二个buf，
-        以此类推。对于Gathering，也是这样的。
-    * 使用场景：
-        * 当对于一个结构固定过的数据结构，比如分为头，体，尾，三部分，那么就可以通过Scattering将其放到多个buf中，
-            而不用像之前将所有数据放到一个buf中，再做解析提取操作。
-    
-* NIO Buffer类解析
-    1. abstract class Buffer
-        * 一个buffer是一个线性的，有限原生类型的序列，除了其内容之外，其重要的属性就是：**capacity, limit. position.**
-        * 这个类的每个子类都定义了get与put两个范围的操作
-            1. 相对操作：读写操作，当每读写一个元素pos就会后移一个位置
-            2. 绝对操作：针对于确定索引位置的操作，其不会影响pos的值
-        * buffer也会提供mark与reset，当mark值被定义的时候，其值一定非负且小于等于pos，未定义的mark值为-1
-        ```0<=mark<=pos<=limit<=capacity```
-        * clear, flip, rewind
-            1. clear()
-                * 设置pos=0,limit=capacity,mark=-1也就是将buf设置为初始状态
-            2. flip()
-                * 为通道写/buf的相对读做准备（也就是channel-read/put -> channel-write/get），设置limit=pos, pos=0.
-            3. rewind()
-                * 为重新读取数据做准备，limit保持不变，pos=0
-        * 只读buf
-            * 每一个buf都是可读的，但是每一个buf并非都是可写的。每一个buf的修改操作都是标识为可选操作。
-                对于只读buf当调用这些方法的时候就会抛出只读buf异常。一个只读buf是不允许其内容进行修改的，
-                但是他的mark，pos，limit数值是可变的，判断一个buf是否仅仅可读通过调用isReadOnly()方法。
-            * 获取只读buf
-                * buf.asReadOnlyBuffer() -> XXXBufferR
-                    * 返回的XXXBufferR跟原来的buf是共用同一个底层数组的，只是其他参数比如pos,limit,capacity,mark,offset都是独立的
-                * 作用：通常用于返回个他人使用而不愿意其修改buf的内容
-                * 可读写buf->read only buf, 但是反之不行
-                    
-        * 线程安全
-            * buf并不自动支持线程同步安全，故多线程情况下需要自己手动添加同步语法
-        * 调用链
-            * 当buf一个方法不需要返回值的时候，就返回其buf，用来形成一个调用链
-        * 方法
-            1. slice()
-                * 返回的就是原来buf的一部分是共享的
-                ```java
-                buf.position(1);
-                buf.limit(9);
-                newBuf = buf.slice(); // newBuf == buf[1, 8]
-                // 即buf的offset=0，capacity=n，为newBuf的offset==1，c=7
-                ```
-    2. interface **DirectBuffer**
-        * 零拷贝
-            * 见https://www.jianshu.com/p/2fd2f03b4cc3
-        * 接口方法
-            1. long address()
-            2. Object attachment()
-            3. Cleaner cleaner()
-    3. abstract class **ByteBuffer** extends Buffer implements Comparable<ByteBuffer>
-        * 常见的有从byte buf中get or put常见原生类型值的方法
-    3. abstract class **MappedByteBuffer** extends ByteBuffer
-        * 是一个**直接**字节buffer(位于堆外内存)，其内容是一个文件的内存映射区域。这个被映射的字节buffer是由FileChannel::map方法来创建的，
-            该类包含着对于文件内存映射区域的特定操作。
-            * FileChannel::map(FileChannel.MapMode mappingMode, long startMappingPos, long mappingSize)
-        * 这个映射字节buffer以及与其代表的文件映射在被GC之前都是有效的。（通过将文件或者文件的一部分映射到内存当中，应用
-            程序就只需要通过对映射内存进行操作即可，由OS完成到file的同步）
-        ```java
-        public class Test4 {
-        
-            public static void main(String[] args) throws IOException {
-                String path = Util.getFilePathByClassLoader("nio_test.txt");
-                RandomAccessFile file = new RandomAccessFile(path, "rw");
-        
-                FileChannel channel = file.getChannel();
-                MappedByteBuffer mappedByteBuffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, 5);
-        
-                mappedByteBuffer.put(0, (byte) 'X');
-                mappedByteBuffer.put(4, (byte) 'Y');
-        
-                file.close();
-            }
-        }
-        ```
-    4. class **DirectByteBuffer** extends MappedByteBuffer implements DirectBuffer
 #### abstract class Selector（大概看看，主要看加粗部分与图）
 ![](../imgs/selector-channel.png)
 * 使用selector完成同步非阻塞编程，运用场景就是使用一个线程处理所有请求
+* **一般当使用一个Selector来实现单线程完成非阻塞任务（比如server socket channel, socket channel都绑定到Selector上）时，
+    server socket channel, socket channel才都需要使用SelectableChannel::configureBlocking(false)**
 * 获取实例方式
     * Selector.open(),其是使用系统默认的SelectorProvider提供器来新建一个Selector实例，一个Selector
         一致保持open状态直到其被close。
@@ -168,6 +46,25 @@
         1. 调用Selector::wakeup()
         2. 调用Selector::close()
         2. 被阻塞的线程调用Thread::interrupt()，Selector::wakeup()也会得到调用
+* 常用方法
+    1. static Selector open()
+        * 创建一个选择器
+    2. SelectorProvider provider()
+        * 返回创建这个选择器的选择器提供者
+    3. Set<SelectionKey> keys()
+        * 返回注册在这个选择器上的所有选择键（话句话说也就是注册在这个选择器上的所有通道）
+            当每一次执行选择操作的时候，就会根据cancelled-key set从key set中移除这些键
+    4. Set<SelectionKey> selectedKeys()
+        * 返回已经准备好处理的所有选择键（也就是待处理的channel）
+    5. int select()
+        * 选择操作
+        * 返回这一轮待处理的选择键数（也就是待处理的通道数）
+        * 类似
+            1. selectNow
+    6. Selector wakeup()
+        * 使得尚未返回的选择操作立刻返回，若另一个线程阻塞在选择方法（e.g. select()）上,则在本线程在调用wakeup方法后，那个线程会立即从
+            选择方法上返回。若当前没有选择操作处于处理状态，除非此一时刻调用了selectNow(), 否则将在下一次调用选择操作的时候就
+            会立即返回。在两次连续成功的选择操作之间调用多次的wakeup方法的效果等同于调用一次。
 #### abstract class SelectionKey（着重看）
 * 是一个代表着向selector注册的可选通道（SelectableChannel）的标识（Token），
 * 每当一个通道注册到selector中就会创建一个选择键(selection key)，即每一个选择键都会绑定一个选择器与一个通道。
@@ -193,7 +90,31 @@
     //    1 << 3标识OP_CONNECT  
     int interestOps = 0b1001; // 表示channel支持read与connect操作
     ```
- 
+* 常用方法
+    1. SelectableChannel channel()
+        * 获取与这个selection key绑定的channel
+    2. Selector selector()
+        * 获取与这个selection key绑定的selector
+    3. void cancel()
+        * 取消key绑定的channel与selector之间的绑定，并且这个选择键将会被添加到原先绑定的选择器的cancelled-key set中
+    4. int interestOps()
+        * 返回这个选择键的兴趣操作集（也就是这个选择键绑定的channel所能支持的所有操作）
+    5. SelectionKey interestOps(int)
+        * 修改这个选择键的兴趣集并返回修改后的自身
+    6. int readyOps()
+        * 返回这个选择键的准备集（也就是当这个选择键绑定过的选择器在下一次执行选择操作的时候，
+            他就会让这个选择键绑定过的channel执行这个准备集中的标识的操作）
+    7. Object attach(Object)
+        * 将给定的对象绑定到这个选择键上去，返回绑定的对象。当未绑定时调用attachment方法将会返回null
+    8. Object attachment()
+        * 返回上一次绑定的对象
+        * Attaches the given object to this key.
+          An attached object may later be retrieved via the attachment method. Only one object may be attached at a time; invoking this method causes any previous attachment to be discarded. The current attachment may be discarded by attaching null.
+          
+          Params:
+          ob – The object to be attached; may be null
+          Returns:
+          The previously-attached object, if any, otherwise nul
 #### abstract class SelectorProvider
 * SelectorProvider::provider()方法来获得SelectorProvider的一个实例
     * 返回系统范围内默认的SelectorProvider的一个实例，这个实例的首次顺序获取策略如下
@@ -211,8 +132,3 @@
             ```
         3. 若以上均为提供，则使用实例化系统默认的SelectorProvider实例
         * 该方法的后续调用返回的均同第一次的结果
-    
-                         
-        
-                
-            
