@@ -1,5 +1,5 @@
 #### abstract class Selector（大概看看，主要看加粗部分与图）
-![](../imgs/selector-channel.png)
+![](imgs/selector-channel.png)
 * 使用selector完成同步非阻塞编程，运用场景就是使用一个线程处理所有请求
 * **一般当使用一个Selector来实现单线程完成非阻塞任务（比如server socket channel, socket channel都绑定到Selector上）时，
     server socket channel, socket channel才都需要使用SelectableChannel::configureBlocking(false)**

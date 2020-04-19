@@ -9,7 +9,7 @@
 * Linux支持的(常见)零拷贝
     * 传统拷贝
     
-        ![](../../imgs/traditional-copy.png)
+        ![](imgs/traditional-copy.png)
         
     1. mmap内存映射
         * DMA加载磁盘数据到kernel buffer后，应用程序缓冲区(application buffers)和内核缓冲区(kernel buffer)进行映射，
@@ -18,25 +18,25 @@
             3. 用户空间app buffer->socket buffer, 4. socket buffer通过DMA->网卡。而有了mmap后，将
             用户app buffer与内核buffer映射起来，然后就可以省去用户空间到内核空间的拷贝。
             
-        ![](../../imgs/zero-copy_mmap.png)
+        ![](imgs/zero-copy_mmap.png)
         
         * mmap内存映射将会经历：3次拷贝: 1次cpu copy，2次DMA copy；
           以及**4次上下文切换**
     2. sendfile
         * linux 2.1支持的sendfile
         
-        ![](../imgs/zero-copy_sendfile_.png)
+        ![](imgs/zero-copy_sendfile_.png)
         
         * 当调用sendfile()时，DMA将磁盘数据复制到kernel buffer，然后将内核中的kernel buffer直接拷贝到socket buffer；
           一旦数据全都拷贝到socket buffer，sendfile()系统调用将会return、代表数据转化的完成。
           socket buffer里的数据就能在网络传输了。
           
-        ![](../imgs/zero-copy_sendfile.png)
+        ![](imgs/zero-copy_sendfile.png)
         
         * sendfile会经历：3次拷贝，1次CPU copy 2次DMA copy；以及**2次上下文切换**
     3. Sendfile With DMA Scatter/Gather Copy
     
-        ![](../imgs/zero-copy_scaterr-gather.png)
+        ![](imgs/zero-copy_scaterr-gather.png)
         
         * Scatter/Gather可以看作是sendfile的增强版，批量sendfile
         * Scatter/Gather会经历2次拷贝: 0次cpu copy，2次DMA copy
@@ -49,7 +49,7 @@
     4. splice
         * Linux 2.6.17 支持splice
         
-        ![](../imgs/zero-copy_splice.png)
+        ![](imgs/zero-copy_splice.png)
         
         * 数据从磁盘读取到OS内核缓冲区后，在内核缓冲区直接可将其转成内核空间其他数据buffer，而不需要拷贝到用户空间。
           如下图所示，从磁盘读取到内核buffer后，在内核空间直接与socket buffer建立pipe管道。
@@ -65,7 +65,7 @@
             因为两次DMA都是依赖硬件完成的。
     * linux零拷贝机制对比
     
-        ![](../imgs/zero-copy_compare.png)  
+        ![](imgs/zero-copy_compare.png)  
 * java.nio中的零拷贝
     1. FileChannel::map
     2. FileChannel::transferTo/From
